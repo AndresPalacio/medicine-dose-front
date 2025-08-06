@@ -17,7 +17,8 @@ class ResponsiveDateSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 400;
+    // Ajustado para iPhone 11 (414px) y otros móviles comunes
+    final isSmallScreen = screenWidth <= 430; // Incluye iPhone 11, 12, 13, etc.
 
     if (isSmallScreen) {
       // Diseño vertical para pantallas pequeñas

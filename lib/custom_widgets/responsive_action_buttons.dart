@@ -16,8 +16,9 @@ class ResponsiveActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 400;
-    final isMediumScreen = screenWidth < 600;
+    // Ajustado para iPhone 11 (414px) y otros móviles comunes
+    final isSmallScreen = screenWidth <= 430; // Incluye iPhone 11, 12, 13, etc.
+    final isMediumScreen = screenWidth <= 600;
 
     if (isSmallScreen) {
       // Para pantallas muy pequeñas: diseño vertical

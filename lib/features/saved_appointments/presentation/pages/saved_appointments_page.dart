@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:vibe_coding_tutorial_weather_app/core/data_state.dart';
-import 'package:vibe_coding_tutorial_weather_app/custom_widgets/badge_text.dart';
-import 'package:vibe_coding_tutorial_weather_app/custom_widgets/button_plain.dart';
+
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_button_round.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_text.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/custom_header.dart';
@@ -13,6 +11,8 @@ import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/pre
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/medical_appointments_page.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/edit_medications_page.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/widgets/medication_card_widget.dart';
+import 'package:vibe_coding_tutorial_weather_app/custom_widgets/responsive_action_buttons.dart';
+import 'package:vibe_coding_tutorial_weather_app/custom_widgets/responsive_date_selector.dart';
 import 'package:vibe_coding_tutorial_weather_app/utils/colors.dart';
 
 class SavedAppointmentsPage extends StatefulWidget {
@@ -249,78 +249,47 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
               bg_color: athens_gray,
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                ContraText(
-                  alignment: Alignment.centerLeft,
-                  text: '${_selectedDate.year} / ${_selectedDate.month}',
-                  size: 24,
-                  weight: FontWeight.bold,
-                  color: wood_smoke,
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: Icon(Icons.edit, color: wood_smoke),
-                  tooltip: 'Editar tratamientos',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EditMedicationsPage(),
-                      ),
-                    );
-                  },
-                ),
-                ButtonPlain(
-                  text: 'Citas médicas',
-                  color: moody_blue,
-                  borderColor: moody_blue,
-                  textColor: white,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const MedicalAppointmentsPage(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
-                ButtonPlain(
-                  text: 'Calendario',
-                  color: carribean_green,
-                  borderColor: carribean_green,
-                  textColor: white,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CalendarPage(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
-                ButtonPlain(
-                  text: 'Cambiar mes',
-                  color: white,
-                  borderColor: wood_smoke,
-                  textColor: wood_smoke,
-                  onTap: () async {
-                    DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate:
-                          DateTime.now().subtract(const Duration(days: 365)),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                      locale: const Locale('es', 'ES'),
-                    );
-                    if (pickedDate != null) {
-                      _jumpToDate(pickedDate);
-                    }
-                  },
-                ),
-              ],
+            ResponsiveDateSelector(
+              selectedDate: _selectedDate,
+              onEditPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditMedicationsPage(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            ResponsiveActionButtons(
+              onCitasPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MedicalAppointmentsPage(),
+                  ),
+                );
+              },
+              onCalendarioPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CalendarPage(),
+                  ),
+                );
+              },
+              onCambiarMesPressed: () async {
+                DateTime? pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDate,
+                  firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                  locale: const Locale('es', 'ES'),
+                );
+                if (pickedDate != null) {
+                  _jumpToDate(pickedDate);
+                }
+              },
             ),
             const SizedBox(height: 16),
             Row(

@@ -1,0 +1,45 @@
+name: vibe_coding_tutorial_weather_app
+description: A weather app tutorial project.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  freezed_annotation: ^2.4.4
+  freezed: ^2.5.7
+  build_runner: ^2.4.13
+  flutter_svg: ^2.0.10+1
+  flutter_staggered_grid_view: ^0.7.0
+  flutter_time_picker_spinner: ^2.0.0
+  fl_chart: ^0.68.0
+  card_swiper: ^3.0.1
+  intl: ^0.19.0
+  http: ^1.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+
+  assets:
+    - assets/icons/
+    - assets/fonts/
+    - assets/images/
+    - assets/images/shopping/
+
+  fonts:
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat-Bold.ttf
+        - asset: assets/fonts/Montserrat-ExtraBold.ttf
+        - asset: assets/fonts/Montserrat-Medium.ttf
+  uses-material-design: true

@@ -30,9 +30,11 @@ class _MedicationPlanResultPageState extends State<MedicationPlanResultPage>
       case 'Semanas':
         return startDate.add(Duration(days: duration * 7 - 1));
       case 'Meses':
-        return DateTime(
-                startDate.year, startDate.month + duration, startDate.day)
-            .subtract(const Duration(days: 1));
+        // Para meses, calculamos la fecha exacta sumando los meses
+        // y luego restamos 1 día para que sea el último día del período
+        final endDate =
+            DateTime(startDate.year, startDate.month + duration, startDate.day);
+        return endDate.subtract(const Duration(days: 1));
       case 'Días':
       default:
         return startDate.add(Duration(days: duration - 1));
@@ -45,7 +47,9 @@ class _MedicationPlanResultPageState extends State<MedicationPlanResultPage>
       required int frequencyDays}) {
     if (frequencyDays <= 0) return 0;
     final totalDays = endDate.difference(startDate).inDays;
-    return (totalDays ~/ frequencyDays) + 1; // inclusivo del día de inicio
+    // Calcular cuántas veces se toma el medicamento en el rango de fechas
+    // Si frequencyDays = 2, significa cada 2 días (día 0, 2, 4, 6, ...)
+    return (totalDays ~/ frequencyDays) + 1; // +1 para incluir el día de inicio
   }
 
   @override
@@ -182,6 +186,7 @@ class _MedicationPlanResultPageState extends State<MedicationPlanResultPage>
       endDate: endDate,
       frequencyDays: widget.plan.frecuenciaDias,
     );
+
     int cantidadNecesaria =
         widget.plan.cantidadPorToma * totalTomasDia * ocurrencias;
 

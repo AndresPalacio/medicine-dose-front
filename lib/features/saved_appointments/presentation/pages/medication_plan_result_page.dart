@@ -22,6 +22,32 @@ class _MedicationPlanResultPageState extends State<MedicationPlanResultPage>
   final MedicationApiService _apiService = MedicationApiService();
   bool _isSaving = false;
 
+  DateTime _computeEndDate(
+      {required DateTime startDate,
+      required int duration,
+      required String durationTypeEs}) {
+    switch (durationTypeEs) {
+      case 'Semanas':
+        return startDate.add(Duration(days: duration * 7 - 1));
+      case 'Meses':
+        return DateTime(
+                startDate.year, startDate.month + duration, startDate.day)
+            .subtract(const Duration(days: 1));
+      case 'Días':
+      default:
+        return startDate.add(Duration(days: duration - 1));
+    }
+  }
+
+  int _computeOccurrencesCount(
+      {required DateTime startDate,
+      required DateTime endDate,
+      required int frequencyDays}) {
+    if (frequencyDays <= 0) return 0;
+    final totalDays = endDate.difference(startDate).inDays;
+    return (totalDays ~/ frequencyDays) + 1; // inclusivo del día de inicio
+  }
+
   @override
   void initState() {
     super.initState();
@@ -146,9 +172,18 @@ class _MedicationPlanResultPageState extends State<MedicationPlanResultPage>
     if (widget.plan.tomaCena) tomas.add('DINNER');
 
     int totalTomasDia = tomas.length;
-
+    final endDate = _computeEndDate(
+      startDate: widget.plan.fechaInicio,
+      duration: widget.plan.duracion,
+      durationTypeEs: widget.plan.tipoDuracion,
+    );
+    final ocurrencias = _computeOccurrencesCount(
+      startDate: widget.plan.fechaInicio,
+      endDate: endDate,
+      frequencyDays: widget.plan.frecuenciaDias,
+    );
     int cantidadNecesaria =
-        widget.plan.cantidadPorToma * totalTomasDia * widget.plan.duracion;
+        widget.plan.cantidadPorToma * totalTomasDia * ocurrencias;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 24.0),
@@ -159,7 +194,7 @@ class _MedicationPlanResultPageState extends State<MedicationPlanResultPage>
           const SizedBox(height: 24),
           _buildInfoCard(
             'Resumen del Plan',
-            '${widget.plan.medicamento} ${widget.plan.cantidadPorToma} pastilla(s) $totalTomasDia veces al día (${tomas.join(', ')}) durante ${widget.plan.duracion} día(s)',
+            '${widget.plan.medicamento} ${widget.plan.cantidadPorToma} pastilla(s) $totalTomasDia veces al día (${tomas.join(', ')}) durante ${widget.plan.duracion} ${widget.plan.tipoDuracion.toLowerCase()} (del ${DateFormat('dd/MM/yyyy').format(widget.plan.fechaInicio)} al ${DateFormat('dd/MM/yyyy').format(endDate)})',
           ),
           // Aquí se podría agregar la lógica de "Próximas fechas de repetición"
         ],
@@ -171,9 +206,14 @@ class _MedicationPlanResultPageState extends State<MedicationPlanResultPage>
     final tomas = <Map<String, dynamic>>[];
     final formatter = DateFormat('dd/MM/yyyy');
 
-    DateTime currentDate = widget.plan.fechaInicio;
+    final endDate = _computeEndDate(
+      startDate: widget.plan.fechaInicio,
+      duration: widget.plan.duracion,
+      durationTypeEs: widget.plan.tipoDuracion,
+    );
 
-    for (int i = 0; i < widget.plan.duracion; i++) {
+    DateTime currentDate = widget.plan.fechaInicio;
+    while (!currentDate.isAfter(endDate)) {
       if (widget.plan.tomaDesayuno) {
         tomas.add({
           "fecha": formatter.format(currentDate),

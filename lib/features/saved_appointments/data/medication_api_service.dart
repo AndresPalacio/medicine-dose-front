@@ -98,6 +98,7 @@ class MedicationApiService {
     }
 
     final body = {
+      'userId': 'main',
       'name': plan.medicamento,
       'totalQuantity': plan.cantidadTotal,
       'quantityPerDose': plan.cantidadPorToma,

@@ -5,7 +5,7 @@ import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/dat
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/medication_model.dart';
 
 class MedicationApiService {
-  final String _baseUrl =
+  String _baseUrl =
       'https://qlgcj2104b.execute-api.us-east-1.amazonaws.com/prod/api';
 
   Future<List<MedicationResponse>> getAllMedications() async {

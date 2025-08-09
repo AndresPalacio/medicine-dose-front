@@ -417,6 +417,10 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
                   isTaken: dose.taken,
                   onToggle: () async {
                     final originalState = dose.taken;
+                    // DEBUG
+                    // ignore: avoid_print
+                    print(
+                        'DEBUG SavedAppointmentsPage.onToggle doseId=${dose.id} before=${originalState}');
                     setState(() {
                       dose.taken = !originalState;
                     });
@@ -424,6 +428,10 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
                       await _apiService.markDoseAsTaken(
                           dose.id, !originalState);
                     } catch (e) {
+                      // DEBUG
+                      // ignore: avoid_print
+                      print(
+                          'DEBUG SavedAppointmentsPage.onToggle ERROR for doseId=${dose.id}: $e');
                       setState(() {
                         dose.taken = originalState;
                       });
@@ -465,6 +473,10 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
                   isTaken: dose.taken,
                   onToggle: () async {
                     final originalState = dose.taken;
+                    // DEBUG
+                    // ignore: avoid_print
+                    print(
+                        'DEBUG SavedAppointmentsPage.onToggle (taken list) doseId=${dose.id} before=${originalState}');
                     setState(() {
                       dose.taken = !originalState;
                     });
@@ -472,6 +484,10 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
                       await _apiService.markDoseAsTaken(
                           dose.id, !originalState);
                     } catch (e) {
+                      // DEBUG
+                      // ignore: avoid_print
+                      print(
+                          'DEBUG SavedAppointmentsPage.onToggle (taken list) ERROR for doseId=${dose.id}: $e');
                       setState(() {
                         dose.taken = originalState;
                       });

@@ -294,6 +294,10 @@ class _ManageDosesDialogState extends State<_ManageDosesDialog> {
       loading = true;
     });
     final dose = doses[index];
+    // DEBUG
+    // ignore: avoid_print
+    print(
+        'DEBUG CalendarPage._toggleDose doseId=${dose.id} before=${dose.taken}');
     try {
       await _apiService.markDoseAsTaken(dose.id, !dose.taken);
       setState(() {
@@ -307,6 +311,9 @@ class _ManageDosesDialogState extends State<_ManageDosesDialog> {
         );
       });
     } catch (e) {
+      // DEBUG
+      // ignore: avoid_print
+      print('DEBUG CalendarPage._toggleDose ERROR for doseId=${dose.id}: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al actualizar la toma')),
       );

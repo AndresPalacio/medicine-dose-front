@@ -5,7 +5,8 @@ import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/dat
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/medication_model.dart';
 
 class MedicationApiService {
-  final String _baseUrl = 'https://vkfj2u2mhuwagnqviwbsdoap6i0tplrb.lambda-url.us-east-1.on.aws/api';
+  final String _baseUrl =
+      'https://qlgcj2104b.execute-api.us-east-1.amazonaws.com/prod/api';
 
   Future<List<MedicationResponse>> getAllMedications() async {
     final response = await http.get(Uri.parse('$_baseUrl/medications'));
@@ -50,11 +51,26 @@ class MedicationApiService {
   }
 
   Future<void> markDoseAsTaken(String doseId, bool isTaken) async {
-    final url = isTaken
-        ? '$_baseUrl/medications/doses/$doseId/mark-taken'
-        : '$_baseUrl/medications/doses/$doseId/mark-pending';
+    // Algunos backends usan IDs compuestos con caracteres reservados (#, |, etc.).
+    // Debemos codificar el segmento para que el navegador no corte la URL en '#'.
+    final encodedDoseId = Uri.encodeComponent(doseId);
+    final url = '$_baseUrl/medications/doses/$encodedDoseId';
 
-    final response = await http.put(Uri.parse(url));
+    // DEBUG
+    // ignore: avoid_print
+    print(
+        'DEBUG markDoseAsTaken → PUT $url (doseId=$doseId, isTaken=$isTaken)');
+
+    final response = await http.put(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      body: jsonEncode({'isTaken': isTaken}),
+    );
+
+    // DEBUG
+    // ignore: avoid_print
+    print(
+        'DEBUG markDoseAsTaken ← status=${response.statusCode} body=${utf8.decode(response.bodyBytes)}');
 
     if (response.statusCode != 200) {
       throw Exception('Failed to update dose status');

@@ -5,12 +5,21 @@ import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/dat
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/medication_model.dart';
 
 class MedicationApiService {
-  String _baseUrl =
-      'https://qlgcj2104b.execute-api.us-east-1.amazonaws.com/prod/api';
+  String _baseUrl = 'http://localhost:8080/api';
 
   Future<List<MedicationResponse>> getAllMedications() async {
-    final response =
-        await http.get(Uri.parse('$_baseUrl/medications?userId=main'));
+    final url = '$_baseUrl/medications?userId=main';
+
+    // DEBUG
+    // ignore: avoid_print
+    print('DEBUG getAllMedications → GET $url');
+
+    final response = await http.get(Uri.parse(url));
+
+    // DEBUG
+    // ignore: avoid_print
+    print(
+        'DEBUG getAllMedications ← status=${response.statusCode} body=${utf8.decode(response.bodyBytes)}');
 
     if (response.statusCode == 200) {
       List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
@@ -18,7 +27,8 @@ class MedicationApiService {
           .map((dynamic item) => MedicationResponse.fromJson(item))
           .toList();
     } else {
-      throw Exception('Failed to load medications');
+      throw Exception(
+          'Failed to load medications: ${response.statusCode} - ${utf8.decode(response.bodyBytes)}');
     }
   }
 
@@ -78,8 +88,19 @@ class MedicationApiService {
 
   Future<List<MedicationDoseResponse>> getDailyDetail(DateTime date) async {
     final formattedDate = DateFormat('yyyy-MM-dd').format(date);
-    final response = await http.get(Uri.parse(
-        '$_baseUrl/medications/daily-detail?date=$formattedDate&userId=main'));
+    final url =
+        '$_baseUrl/medications/daily-detail?date=$formattedDate&userId=main';
+
+    // DEBUG
+    // ignore: avoid_print
+    print('DEBUG getDailyDetail → GET $url');
+
+    final response = await http.get(Uri.parse(url));
+
+    // DEBUG
+    // ignore: avoid_print
+    print(
+        'DEBUG getDailyDetail ← status=${response.statusCode} body=${utf8.decode(response.bodyBytes)}');
 
     if (response.statusCode == 200) {
       List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
@@ -87,7 +108,8 @@ class MedicationApiService {
           .map((dynamic item) => MedicationDoseResponse.fromJson(item))
           .toList();
     } else {
-      throw Exception('Failed to load daily detail');
+      throw Exception(
+          'Failed to load daily detail: ${response.statusCode} - ${utf8.decode(response.bodyBytes)}');
     }
   }
 

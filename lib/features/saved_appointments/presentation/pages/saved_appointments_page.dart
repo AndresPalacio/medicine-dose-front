@@ -78,8 +78,11 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
       await _fetchDailyDoses(_selectedDate);
     } catch (e) {
       setState(() {
-        _error = "Error al cargar los datos iniciales.";
+        _error = "Error al cargar los datos iniciales: $e";
       });
+      // DEBUG
+      // ignore: avoid_print
+      print('DEBUG _fetchInitialData error: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -102,8 +105,11 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = "Error al cargar las tomas del día.";
+          _error = "Error al cargar las tomas del día: $e";
         });
+        // DEBUG
+        // ignore: avoid_print
+        print('DEBUG _fetchDailyDoses error: $e');
       }
     } finally {
       if (mounted) {

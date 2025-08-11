@@ -268,7 +268,7 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
     _mealTiming = widget.medication.mealTiming;
     _timeUnit = widget.medication.timeUnit ?? 'MINUTOS';
     _timeBeforeAfterController = TextEditingController(
-        text: (widget.medication.timeBeforeAfter ?? 0).toString());
+        text: _getTimeBeforeAfterText(widget.medication.timeBeforeAfter));
     _startDate = widget.medication.startDate;
     _quantityPerDoseController = TextEditingController(
         text: widget.medication.quantityPerDose?.toString() ?? '');
@@ -277,6 +277,22 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
     _desayuno = meals.contains('DESAYUNO');
     _almuerzo = meals.contains('ALMUERZO');
     _cena = meals.contains('CENA');
+  }
+
+  String _getTimeBeforeAfterText(dynamic timeBeforeAfter) {
+    if (timeBeforeAfter == null) return '0';
+    if (timeBeforeAfter is int) return timeBeforeAfter.toString();
+    if (timeBeforeAfter is String) {
+      // Si es "INDIFERENTE" o similar, devolver 0
+      if (timeBeforeAfter == 'INDIFERENTE' ||
+          timeBeforeAfter == 'EN_AYUNAS' ||
+          timeBeforeAfter == 'CON_COMIDA') {
+        return '0';
+      }
+      // Intentar parsear como número
+      return int.tryParse(timeBeforeAfter)?.toString() ?? '0';
+    }
+    return '0';
   }
 
   @override

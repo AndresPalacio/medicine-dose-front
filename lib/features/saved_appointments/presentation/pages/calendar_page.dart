@@ -281,6 +281,7 @@ class _ManageDosesDialogState extends State<_ManageDosesDialog> {
         .map((d) => MedicationDoseResponse(
               id: d.id,
               medicationId: d.medicationId,
+              medicationName: d.medicationName,
               date: d.date,
               meal: d.meal,
               quantity: d.quantity,
@@ -304,6 +305,7 @@ class _ManageDosesDialogState extends State<_ManageDosesDialog> {
         doses[index] = MedicationDoseResponse(
           id: dose.id,
           medicationId: dose.medicationId,
+          medicationName: dose.medicationName,
           date: dose.date,
           meal: dose.meal,
           quantity: dose.quantity,

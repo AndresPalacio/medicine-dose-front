@@ -199,7 +199,7 @@ class _EditMedicationsPageState extends State<EditMedicationsPage> {
                                     ),
                                     ContraText(
                                       text:
-                                          'Inicio: ${med.startDate.toLocal().toString().split(' ')[0]}',
+                                          'Inicio del medicamento: ${med.startDate.toLocal().toString().split(' ')[0]}',
                                       size: 16,
                                       color: trout,
                                       alignment: Alignment.centerLeft,
@@ -476,7 +476,7 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
                 ),
                 const SizedBox(height: 16),
                 ContraText(
-                  text: 'Fecha de inicio',
+                  text: 'Fecha de inicio del medicamento',
                   size: 18,
                   color: wood_smoke,
                   alignment: Alignment.centerLeft,

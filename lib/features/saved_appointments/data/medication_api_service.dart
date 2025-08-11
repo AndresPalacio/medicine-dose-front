@@ -7,6 +7,10 @@ import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/dat
 class MedicationApiService {
   String _baseUrl = 'http://localhost:8080/api';
 
+  // Variables para la caché de medicamentos mensuales
+  Map<String, List<MedicationDoseResponse>> _monthlyCache = {};
+  String? _currentCachedMonth;
+
   Future<List<MedicationResponse>> getAllMedications() async {
     final url = '$_baseUrl/medications?userId=main';
 
@@ -113,6 +117,96 @@ class MedicationApiService {
     }
   }
 
+  /// Obtiene los medicamentos mensuales con caché para optimizar las consultas
+  /// Solo hace una nueva petición si cambia el mes o si no hay datos en caché
+  Future<List<MedicationDoseResponse>> getMonthlyDetail(DateTime date) async {
+    final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+    final monthKey = DateFormat('yyyy-MM').format(date);
+
+    // DEBUG
+    // ignore: avoid_print
+    print('DEBUG getMonthlyDetail → Checking cache for month: $monthKey');
+
+    // Verificar si ya tenemos datos en caché para este mes
+    if (_monthlyCache.containsKey(monthKey) &&
+        _currentCachedMonth == monthKey) {
+      // DEBUG
+      // ignore: avoid_print
+      print(
+          'DEBUG getMonthlyDetail ← Returning cached data for month: $monthKey');
+      return _monthlyCache[monthKey]!;
+    }
+
+    // Si no hay caché o cambió el mes, hacer la petición
+    final url =
+        '$_baseUrl/medications/monthly-detail?date=$formattedDate&userId=main';
+
+    // DEBUG
+    // ignore: avoid_print
+    print('DEBUG getMonthlyDetail → GET $url');
+
+    final response = await http.get(Uri.parse(url));
+
+    // DEBUG
+    // ignore: avoid_print
+    print(
+        'DEBUG getMonthlyDetail ← status=${response.statusCode} body=${utf8.decode(response.bodyBytes)}');
+
+    if (response.statusCode == 200) {
+      List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
+      final medications = body
+          .map((dynamic item) => MedicationDoseResponse.fromJson(item))
+          .toList();
+
+      // Guardar en caché
+      _monthlyCache[monthKey] = medications;
+      _currentCachedMonth = monthKey;
+
+      // DEBUG
+      // ignore: avoid_print
+      print(
+          'DEBUG getMonthlyDetail ← Cached data for month: $monthKey (${medications.length} items)');
+
+      return medications;
+    } else {
+      throw Exception(
+          'Failed to load monthly detail: ${response.statusCode} - ${utf8.decode(response.bodyBytes)}');
+    }
+  }
+
+  /// Limpia la caché de medicamentos mensuales
+  /// Útil cuando se actualiza, crea o elimina un medicamento
+  void clearMonthlyCache() {
+    _monthlyCache.clear();
+    _currentCachedMonth = null;
+    // DEBUG
+    // ignore: avoid_print
+    print('DEBUG clearMonthlyCache → Cache cleared');
+  }
+
+  /// Obtiene medicamentos para un día específico desde la caché mensual
+  /// Si no hay caché, hace la petición completa del mes
+  Future<List<MedicationDoseResponse>> getDailyDetailFromCache(
+      DateTime date) async {
+    final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+    final monthKey = DateFormat('yyyy-MM').format(date);
+
+    // Obtener datos del mes (usando caché si está disponible)
+    final monthlyData = await getMonthlyDetail(date);
+
+    // Filtrar por fecha específica
+    final dailyData = monthlyData.where((medication) {
+      return medication.date == formattedDate;
+    }).toList();
+
+    // DEBUG
+    // ignore: avoid_print
+    print(
+        'DEBUG getDailyDetailFromCache → Filtered ${dailyData.length} items for date: $formattedDate');
+
+    return dailyData;
+  }
+
   Future<void> markDoseAsTaken(String doseId, bool isTaken) async {
     final url =
         '$_baseUrl/medications/mark-dose?doseId=$doseId&isTaken=${isTaken.toString()}&userId=main';
@@ -135,6 +229,8 @@ class MedicationApiService {
     if (response.statusCode != 200) {
       throw Exception('Failed to update dose status');
     }
+
+    // Nota: La caché se actualiza localmente en la UI, no se limpia aquí
   }
 
   Future<void> createMedication(MedicationPlan plan) async {
@@ -189,6 +285,9 @@ class MedicationApiService {
     if (response.statusCode != 201) {
       throw Exception('Failed to create medication.');
     }
+
+    // Limpiar caché después de crear un medicamento
+    clearMonthlyCache();
   }
 
   Future<void> updateMedication(String id, Map<String, dynamic> body) async {
@@ -215,6 +314,9 @@ class MedicationApiService {
     if (response.statusCode != 200) {
       throw Exception('No se pudo actualizar el medicamento');
     }
+
+    // Limpiar caché después de actualizar un medicamento
+    clearMonthlyCache();
   }
 
   Future<void> deleteMedication(String id) async {
@@ -223,5 +325,8 @@ class MedicationApiService {
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('No se pudo borrar el medicamento');
     }
+
+    // Limpiar caché después de eliminar un medicamento
+    clearMonthlyCache();
   }
 }

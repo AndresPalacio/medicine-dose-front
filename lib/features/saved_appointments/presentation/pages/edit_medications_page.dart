@@ -50,17 +50,18 @@ class _EditMedicationsPageState extends State<EditMedicationsPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmar borrado'),
+        backgroundColor: white,
+        title: const Text('Confirmar borrado', style: TextStyle(color: wood_smoke)),
         content:
-            const Text('¿Estás seguro de que deseas borrar este tratamiento?'),
+            const Text('¿Estás seguro de que deseas borrar este tratamiento?', style: TextStyle(color: wood_smoke)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: const Text('Cancelar', style: TextStyle(color: wood_smoke)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Borrar'),
+            child: const Text('Borrar', style: TextStyle(color: carribean_green, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -484,6 +485,9 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
                             },
                             decoration: const InputDecoration(
                                 border: OutlineInputBorder()),
+                            dropdownColor: white,
+                            icon: const Icon(Icons.arrow_drop_down, color: wood_smoke),
+                            style: const TextStyle(color: wood_smoke),
                           ),
                         ],
                       ),
@@ -603,6 +607,9 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
                             },
                             decoration: const InputDecoration(
                                 border: OutlineInputBorder()),
+                            dropdownColor: white,
+                            icon: const Icon(Icons.arrow_drop_down, color: wood_smoke),
+                            style: const TextStyle(color: wood_smoke),
                           ),
                         ],
                       ),
@@ -663,6 +670,9 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
                                 _timeUnit = value!;
                               });
                             },
+                            dropdownColor: white,
+                            icon: const Icon(Icons.arrow_drop_down, color: wood_smoke),
+                            style: const TextStyle(color: wood_smoke),
                             decoration: const InputDecoration(
                                 border: OutlineInputBorder()),
                           ),

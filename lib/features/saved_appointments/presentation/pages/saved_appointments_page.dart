@@ -10,6 +10,7 @@ import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/pre
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/calendar_page.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/medical_appointments_page.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/edit_medications_page.dart';
+import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/symptom_tracking_page.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/widgets/medication_card_widget.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/responsive_action_buttons.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/responsive_date_selector.dart';
@@ -350,6 +351,14 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const CalendarPage(),
+                  ),
+                );
+              },
+              onSintomasPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SymptomTrackingPage(),
                   ),
                 );
               },

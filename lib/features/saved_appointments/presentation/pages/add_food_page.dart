@@ -929,6 +929,20 @@ class _AddFoodPageState extends State<AddFoodPage> {
         discomfortNotes: _discomfortNotes.isEmpty ? null : _discomfortNotes,
       );
 
+      // DEBUG: Log del modelo antes de guardar
+      print('DEBUG _saveFood → Modelo a guardar:');
+      print('  - ID: ${entry.id}');
+      print('  - MealType: ${entry.mealType}');
+      print('  - FoodName: ${entry.foodName}');
+      print('  - Description: ${entry.description}');
+      print('  - Date: ${entry.date}');
+      print('  - Time: ${entry.time}');
+      print('  - Ingredients: ${entry.ingredients}');
+      print('  - Portion: ${entry.portion}');
+      print('  - CausedDiscomfort: ${entry.causedDiscomfort}');
+      print('  - DiscomfortNotes: ${entry.discomfortNotes}');
+      print('  - JSON completo: ${entry.toJson()}');
+
       bool success;
       if (widget.editingEntry != null) {
         success = await _symptomService.updateFoodEntry(entry);

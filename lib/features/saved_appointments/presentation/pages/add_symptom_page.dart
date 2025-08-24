@@ -666,6 +666,18 @@ class _AddSymptomPageState extends State<AddSymptomPage> {
             _relatedMedications.isEmpty ? null : _relatedMedications,
       );
 
+      // DEBUG: Log del modelo antes de guardar
+      print('DEBUG _saveSymptom → Modelo a guardar:');
+      print('  - ID: ${entry.id}');
+      print('  - SymptomId: ${entry.symptomId}');
+      print('  - SymptomName: ${entry.symptomName}');
+      print('  - Severity: ${entry.severity}');
+      print('  - Notes: ${entry.notes}');
+      print('  - Date: ${entry.date}');
+      print('  - Time: ${entry.time}');
+      print('  - RelatedMedications: ${entry.relatedMedications}');
+      print('  - JSON completo: ${entry.toJson()}');
+
       bool success;
       if (widget.editingEntry != null) {
         success = await _symptomService.updateSymptomEntry(entry);

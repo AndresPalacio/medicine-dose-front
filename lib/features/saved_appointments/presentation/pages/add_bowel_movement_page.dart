@@ -582,6 +582,20 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
         painLevel: _painLevel.isEmpty ? null : _painLevel,
       );
 
+      // DEBUG: Log del modelo antes de guardar
+      print('DEBUG _saveBowelMovement → Modelo a guardar:');
+      print('  - ID: ${entry.id}');
+      print('  - Date: ${entry.date}');
+      print('  - Time: ${entry.time}');
+      print('  - Consistency: ${entry.consistency}');
+      print('  - Color: ${entry.color}');
+      print('  - HasBlood: ${entry.hasBlood}');
+      print('  - HasMucus: ${entry.hasMucus}');
+      print('  - Notes: ${entry.notes}');
+      print('  - WasPainful: ${entry.wasPainful}');
+      print('  - PainLevel: ${entry.painLevel}');
+      print('  - JSON completo: ${entry.toJson()}');
+
       bool success;
       if (widget.editingEntry != null) {
         success = await _symptomService.updateBowelMovementEntry(entry);

@@ -65,6 +65,10 @@ class SymptomService {
   // Agregar una nueva entrada de síntoma
   Future<bool> addSymptomEntry(SymptomEntry entry) async {
     try {
+      // DEBUG: Log antes de guardar
+      print('DEBUG addSymptomEntry → Guardando síntoma:');
+      print('  - JSON a guardar: ${entry.toJson()}');
+
       final allEntries = await getAllSymptomEntries();
       allEntries.add(entry);
 
@@ -72,7 +76,14 @@ class SymptomService {
       final entriesJson =
           json.encode(allEntries.map((e) => e.toJson()).toList());
 
-      return await prefs.setString(_symptomEntriesKey, entriesJson);
+      final success = await prefs.setString(_symptomEntriesKey, entriesJson);
+
+      // DEBUG: Log después de guardar
+      print('DEBUG addSymptomEntry → Guardado exitoso: $success');
+      print(
+          'DEBUG addSymptomEntry → Total de síntomas guardados: ${allEntries.length}');
+
+      return success;
     } catch (e) {
       print('Error al agregar entrada de síntoma: $e');
       return false;
@@ -82,6 +93,11 @@ class SymptomService {
   // Actualizar una entrada de síntoma existente
   Future<bool> updateSymptomEntry(SymptomEntry updatedEntry) async {
     try {
+      // DEBUG: Log antes de actualizar
+      print('DEBUG updateSymptomEntry → Actualizando síntoma:');
+      print('  - ID a actualizar: ${updatedEntry.id}');
+      print('  - JSON a guardar: ${updatedEntry.toJson()}');
+
       final allEntries = await getAllSymptomEntries();
       final index =
           allEntries.indexWhere((entry) => entry.id == updatedEntry.id);
@@ -93,9 +109,18 @@ class SymptomService {
         final entriesJson =
             json.encode(allEntries.map((e) => e.toJson()).toList());
 
-        return await prefs.setString(_symptomEntriesKey, entriesJson);
+        final success = await prefs.setString(_symptomEntriesKey, entriesJson);
+
+        // DEBUG: Log después de actualizar
+        print('DEBUG updateSymptomEntry → Actualización exitosa: $success');
+        print(
+            'DEBUG updateSymptomEntry → Total de síntomas guardados: ${allEntries.length}');
+
+        return success;
       }
 
+      print(
+          'DEBUG updateSymptomEntry → No se encontró el síntoma con ID: ${updatedEntry.id}');
       return false;
     } catch (e) {
       print('Error al actualizar entrada de síntoma: $e');
@@ -161,6 +186,10 @@ class SymptomService {
   // Agregar una nueva entrada de alimentación
   Future<bool> addFoodEntry(FoodEntry entry) async {
     try {
+      // DEBUG: Log antes de guardar
+      print('DEBUG addFoodEntry → Guardando comida:');
+      print('  - JSON a guardar: ${entry.toJson()}');
+
       final allEntries = await getAllFoodEntries();
       allEntries.add(entry);
 
@@ -168,7 +197,14 @@ class SymptomService {
       final entriesJson =
           json.encode(allEntries.map((e) => e.toJson()).toList());
 
-      return await prefs.setString(_foodEntriesKey, entriesJson);
+      final success = await prefs.setString(_foodEntriesKey, entriesJson);
+
+      // DEBUG: Log después de guardar
+      print('DEBUG addFoodEntry → Guardado exitoso: $success');
+      print(
+          'DEBUG addFoodEntry → Total de comidas guardadas: ${allEntries.length}');
+
+      return success;
     } catch (e) {
       print('Error al agregar entrada de alimentación: $e');
       return false;
@@ -178,6 +214,11 @@ class SymptomService {
   // Actualizar una entrada de alimentación existente
   Future<bool> updateFoodEntry(FoodEntry updatedEntry) async {
     try {
+      // DEBUG: Log antes de actualizar
+      print('DEBUG updateFoodEntry → Actualizando comida:');
+      print('  - ID a actualizar: ${updatedEntry.id}');
+      print('  - JSON a guardar: ${updatedEntry.toJson()}');
+
       final allEntries = await getAllFoodEntries();
       final index =
           allEntries.indexWhere((entry) => entry.id == updatedEntry.id);
@@ -189,9 +230,18 @@ class SymptomService {
         final entriesJson =
             json.encode(allEntries.map((e) => e.toJson()).toList());
 
-        return await prefs.setString(_foodEntriesKey, entriesJson);
+        final success = await prefs.setString(_foodEntriesKey, entriesJson);
+
+        // DEBUG: Log después de actualizar
+        print('DEBUG updateFoodEntry → Actualización exitosa: $success');
+        print(
+            'DEBUG updateFoodEntry → Total de comidas guardadas: ${allEntries.length}');
+
+        return success;
       }
 
+      print(
+          'DEBUG updateFoodEntry → No se encontró la comida con ID: ${updatedEntry.id}');
       return false;
     } catch (e) {
       print('Error al actualizar entrada de alimentación: $e');
@@ -260,6 +310,10 @@ class SymptomService {
   // Agregar una nueva entrada de deposición
   Future<bool> addBowelMovementEntry(BowelMovementEntry entry) async {
     try {
+      // DEBUG: Log antes de guardar
+      print('DEBUG addBowelMovementEntry → Guardando deposición:');
+      print('  - JSON a guardar: ${entry.toJson()}');
+
       final allEntries = await getAllBowelMovementEntries();
       allEntries.add(entry);
 
@@ -267,7 +321,15 @@ class SymptomService {
       final entriesJson =
           json.encode(allEntries.map((e) => e.toJson()).toList());
 
-      return await prefs.setString(_bowelMovementEntriesKey, entriesJson);
+      final success =
+          await prefs.setString(_bowelMovementEntriesKey, entriesJson);
+
+      // DEBUG: Log después de guardar
+      print('DEBUG addBowelMovementEntry → Guardado exitoso: $success');
+      print(
+          'DEBUG addBowelMovementEntry → Total de deposiciones guardadas: ${allEntries.length}');
+
+      return success;
     } catch (e) {
       print('Error al agregar entrada de deposición: $e');
       return false;
@@ -277,6 +339,11 @@ class SymptomService {
   // Actualizar una entrada de deposición existente
   Future<bool> updateBowelMovementEntry(BowelMovementEntry updatedEntry) async {
     try {
+      // DEBUG: Log antes de actualizar
+      print('DEBUG updateBowelMovementEntry → Actualizando deposición:');
+      print('  - ID a actualizar: ${updatedEntry.id}');
+      print('  - JSON a guardar: ${updatedEntry.toJson()}');
+
       final allEntries = await getAllBowelMovementEntries();
       final index =
           allEntries.indexWhere((entry) => entry.id == updatedEntry.id);
@@ -288,9 +355,20 @@ class SymptomService {
         final entriesJson =
             json.encode(allEntries.map((e) => e.toJson()).toList());
 
-        return await prefs.setString(_bowelMovementEntriesKey, entriesJson);
+        final success =
+            await prefs.setString(_bowelMovementEntriesKey, entriesJson);
+
+        // DEBUG: Log después de actualizar
+        print(
+            'DEBUG updateBowelMovementEntry → Actualización exitosa: $success');
+        print(
+            'DEBUG updateBowelMovementEntry → Total de deposiciones guardadas: ${allEntries.length}');
+
+        return success;
       }
 
+      print(
+          'DEBUG updateBowelMovementEntry → No se encontró la deposición con ID: ${updatedEntry.id}');
       return false;
     } catch (e) {
       print('Error al actualizar entrada de deposición: $e');

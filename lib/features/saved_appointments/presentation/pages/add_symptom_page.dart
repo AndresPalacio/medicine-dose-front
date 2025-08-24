@@ -310,49 +310,64 @@ class _AddSymptomPageState extends State<AddSymptomPage> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              TextField(
-                style: const TextStyle(
-                  color: wood_smoke,
-                  fontSize: 16,
+              Container(
+                decoration: BoxDecoration(
+                  color: athens_gray,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: wood_smoke, width: 2),
                 ),
-                decoration: const InputDecoration(
-                  hintText: 'Escribir síntoma personalizado...',
-                  hintStyle: TextStyle(
-                    color: Colors.grey,
+                child: TextField(
+                  style: const TextStyle(
+                    color: wood_smoke,
                     fontSize: 16,
                   ),
-                  border: OutlineInputBorder(),
+                  decoration: const InputDecoration(
+                    hintText: 'Escribir síntoma personalizado...',
+                    hintStyle: TextStyle(
+                      color: trout,
+                      fontSize: 16,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _otherSymptom = value;
+                    });
+                  },
                 ),
-                onChanged: (value) {
-                  setState(() {
-                    _otherSymptom = value;
-                  });
-                },
               ),
               const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: _otherSymptom.isNotEmpty
-                    ? () {
-                        setState(() {
-                          // Crear un síntoma personalizado
-                          final customSymptom = Symptom(
-                            id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
-                            name: _otherSymptom,
-                            description: 'Síntoma personalizado',
-                            category: 'personalizado',
-                            icon: Icons.medical_services,
-                            severityLevels: ['Leve', 'Moderado', 'Severo'],
-                          );
-                          _selectedSymptoms.add(customSymptom);
-                          _otherSymptom = '';
-                        });
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: lightening_yellow,
-                  foregroundColor: wood_smoke,
+              SizedBox(
+                width: double.infinity,
+                child: ContraButton(
+                  text: 'Agregar',
+                  iconPath: 'assets/icons/ic_add.svg',
+                  callback: _otherSymptom.isNotEmpty
+                      ? () {
+                          setState(() {
+                            // Crear un síntoma personalizado
+                            final customSymptom = Symptom(
+                              id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+                              name: _otherSymptom,
+                              description: 'Síntoma personalizado',
+                              category: 'personalizado',
+                              icon: Icons.medical_services,
+                              severityLevels: ['Leve', 'Moderado', 'Severo'],
+                            );
+                            _selectedSymptoms.add(customSymptom);
+                            _otherSymptom = '';
+                          });
+                        }
+                      : () {},
+                  color: _otherSymptom.isNotEmpty
+                      ? lightening_yellow
+                      : athens_gray,
+                  textColor: _otherSymptom.isNotEmpty ? wood_smoke : trout,
+                  borderColor: wood_smoke,
+                  shadowColor: athens_gray,
                 ),
-                child: const Text('Agregar'),
               ),
             ],
           ),

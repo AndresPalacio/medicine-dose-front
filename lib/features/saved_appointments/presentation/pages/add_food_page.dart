@@ -238,66 +238,98 @@ class _AddFoodPageState extends State<AddFoodPage> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: wood_smoke, width: 2),
           ),
-          child: DropdownButtonFormField<String>(
-            value: _foodName.isEmpty
-                ? null
-                : (SymptomData.commonFoods.contains(_foodName)
-                    ? _foodName
-                    : null),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-            hint: ContraText(
-              text: _foodName.isEmpty
-                  ? 'Seleccionar o escribir alimento'
-                  : _foodName,
-              size: 16,
-              color: _foodName.isEmpty ? trout : wood_smoke,
-              alignment: Alignment.centerLeft,
-            ),
-            dropdownColor: white,
-            icon: const Icon(Icons.arrow_drop_down, color: wood_smoke),
-            style: const TextStyle(color: wood_smoke),
-            items: [
-              ...SymptomData.commonFoods.map((food) {
-                return DropdownMenuItem(
-                  value: food,
-                  child: ContraText(
-                    text: food,
+          child: _foodName.isNotEmpty &&
+                  !SymptomData.commonFoods.contains(_foodName)
+              ? // Mostrar campo de texto editable para alimentos personalizados
+              Row(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        child: ContraText(
+                          text: _foodName,
+                          size: 16,
+                          color: wood_smoke,
+                          alignment: Alignment.centerLeft,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: wood_smoke),
+                      onPressed: () => _showCustomFoodDialog(),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.clear, color: wood_smoke),
+                      onPressed: () {
+                        setState(() {
+                          _foodName = '';
+                        });
+                      },
+                    ),
+                  ],
+                )
+              : // Mostrar dropdown para alimentos predefinidos
+              DropdownButtonFormField<String>(
+                  value: _foodName.isEmpty
+                      ? null
+                      : (SymptomData.commonFoods.contains(_foodName)
+                          ? _foodName
+                          : null),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  hint: ContraText(
+                    text: _foodName.isEmpty
+                        ? 'Seleccionar o escribir alimento'
+                        : _foodName,
                     size: 16,
-                    color: wood_smoke,
+                    color: _foodName.isEmpty ? trout : wood_smoke,
                     alignment: Alignment.centerLeft,
                   ),
-                );
-              }),
-              const DropdownMenuItem(
-                value: 'custom',
-                child: ContraText(
-                  text: 'Otro (escribir)',
-                  size: 16,
-                  color: wood_smoke,
-                  alignment: Alignment.centerLeft,
+                  dropdownColor: white,
+                  icon: const Icon(Icons.arrow_drop_down, color: wood_smoke),
+                  style: const TextStyle(color: wood_smoke),
+                  items: [
+                    ...SymptomData.commonFoods.map((food) {
+                      return DropdownMenuItem(
+                        value: food,
+                        child: ContraText(
+                          text: food,
+                          size: 16,
+                          color: wood_smoke,
+                          alignment: Alignment.centerLeft,
+                        ),
+                      );
+                    }),
+                    const DropdownMenuItem(
+                      value: 'custom',
+                      child: ContraText(
+                        text: 'Otro (escribir)',
+                        size: 16,
+                        color: wood_smoke,
+                        alignment: Alignment.centerLeft,
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == 'custom') {
+                        _showCustomFoodDialog();
+                      } else {
+                        _foodName = value ?? '';
+                      }
+                    });
+                  },
+                  validator: (value) {
+                    if (_foodName.isEmpty) {
+                      return 'Por favor selecciona o escribe el alimento';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-            ],
-            onChanged: (value) {
-              setState(() {
-                if (value == 'custom') {
-                  _showCustomFoodDialog();
-                } else {
-                  _foodName = value ?? '';
-                }
-              });
-            },
-            validator: (value) {
-              if (_foodName.isEmpty) {
-                return 'Por favor selecciona o escribe el alimento';
-              }
-              return null;
-            },
-          ),
         ),
       ],
     );
@@ -508,59 +540,125 @@ class _AddFoodPageState extends State<AddFoodPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Checkbox(
-              value: _causedDiscomfort,
-              onChanged: (value) {
-                setState(() {
-                  _causedDiscomfort = value ?? false;
-                });
-              },
-              activeColor: lightening_yellow,
-            ),
-            const ContraText(
-              text: '¿Esta comida causó malestar?',
-              size: 16,
-              weight: FontWeight.bold,
-              color: wood_smoke,
-              alignment: Alignment.centerLeft,
-            ),
-          ],
+        const ContraText(
+          text: 'Malestar',
+          size: 16,
+          weight: FontWeight.bold,
+          color: wood_smoke,
+          alignment: Alignment.centerLeft,
         ),
-        if (_causedDiscomfort) ...[
-          const SizedBox(height: 12),
-          TextField(
-            controller: TextEditingController(text: _discomfortNotes),
-            onChanged: (value) {
-              setState(() {
-                _discomfortNotes = value;
-              });
-            },
-            maxLines: 3,
-            style: const TextStyle(color: wood_smoke),
-            decoration: InputDecoration(
-              hintText: 'Describe el malestar que causó...',
-              hintStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: trout,
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              filled: true,
-              fillColor: athens_gray,
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: wood_smoke, width: 2),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: wood_smoke, width: 2),
-              ),
-            ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: athens_gray,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: wood_smoke, width: 2),
           ),
-        ],
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _causedDiscomfort ? lightening_yellow : white,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: _causedDiscomfort
+                              ? lightening_yellow
+                              : wood_smoke,
+                          width: 2,
+                        ),
+                      ),
+                      child: Checkbox(
+                        value: _causedDiscomfort,
+                        onChanged: (value) {
+                          setState(() {
+                            _causedDiscomfort = value ?? false;
+                            if (!value!) {
+                              _discomfortNotes = '';
+                            }
+                          });
+                          if (value == true) {
+                            _showDiscomfortDialog();
+                          }
+                        },
+                        activeColor: lightening_yellow,
+                        checkColor: wood_smoke,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _causedDiscomfort = !_causedDiscomfort;
+                            if (!_causedDiscomfort) {
+                              _discomfortNotes = '';
+                            }
+                          });
+                          if (_causedDiscomfort) {
+                            _showDiscomfortDialog();
+                          }
+                        },
+                        child: const ContraText(
+                          text: '¿Esta comida causó malestar?',
+                          size: 16,
+                          weight: FontWeight.w500,
+                          color: wood_smoke,
+                          alignment: Alignment.centerLeft,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_causedDiscomfort && _discomfortNotes.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: wood_smoke, width: 1),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ContraText(
+                            text: _discomfortNotes,
+                            size: 14,
+                            color: wood_smoke,
+                            alignment: Alignment.centerLeft,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit,
+                              color: wood_smoke, size: 20),
+                          onPressed: () => _showDiscomfortDialog(),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.clear,
+                              color: wood_smoke, size: 20),
+                          onPressed: () {
+                            setState(() {
+                              _discomfortNotes = '';
+                              _causedDiscomfort = false;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -591,59 +689,217 @@ class _AddFoodPageState extends State<AddFoodPage> {
     }
   }
 
-  void _showCustomFoodDialog() {
-    final TextEditingController controller = TextEditingController();
+  void _showDiscomfortDialog() {
+    final TextEditingController controller =
+        TextEditingController(text: _discomfortNotes);
+    bool hasText = _discomfortNotes.isNotEmpty;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: white,
-        title: const Text('Agregar Alimento Personalizado',
-            style: TextStyle(color: wood_smoke)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Nombre del alimento',
-            border: OutlineInputBorder(),
-            hintStyle: TextStyle(color: athens_gray),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
-          style: const TextStyle(color: wood_smoke),
-          onSubmitted: (value) {
-            if (value.trim().isNotEmpty) {
-              setState(() {
-                _foodName = value.trim();
-              });
-              Navigator.of(context).pop();
-            }
-          },
+          title: const ContraText(
+            text: 'Describir Malestar',
+            size: 18,
+            weight: FontWeight.bold,
+            color: wood_smoke,
+            alignment: Alignment.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: athens_gray,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: wood_smoke, width: 2),
+                ),
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  maxLines: 4,
+                  style: const TextStyle(
+                    color: wood_smoke,
+                    fontSize: 16,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'Describe el malestar que causó esta comida...',
+                    hintStyle: TextStyle(
+                      color: trout,
+                      fontSize: 16,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      hasText = value.trim().isNotEmpty;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: ContraButton(
+                      text: 'Cancelar',
+                      iconPath: 'assets/icons/ic_add.svg',
+                      callback: () {
+                        Navigator.of(context).pop();
+                      },
+                      color: athens_gray,
+                      textColor: wood_smoke,
+                      borderColor: wood_smoke,
+                      shadowColor: athens_gray,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ContraButton(
+                      text: 'Guardar',
+                      iconPath: 'assets/icons/ic_add.svg',
+                      callback: hasText
+                          ? () {
+                              final value = controller.text.trim();
+                              setState(() {
+                                _discomfortNotes = value;
+                              });
+                              Navigator.of(context).pop();
+                            }
+                          : () {},
+                      color: hasText ? lightening_yellow : athens_gray,
+                      textColor: hasText ? wood_smoke : trout,
+                      borderColor: wood_smoke,
+                      shadowColor: athens_gray,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              // Reset the food name if user cancels
-              setState(() {
-                _foodName = '';
-              });
-              Navigator.of(context).pop();
-            },
-            child: const Text('Cancelar', style: TextStyle(color: wood_smoke)),
+      ),
+    );
+  }
+
+  void _showCustomFoodDialog() {
+    final TextEditingController controller =
+        TextEditingController(text: _foodName);
+    bool hasText = _foodName.isNotEmpty;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
-          TextButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (value.isNotEmpty) {
-                setState(() {
-                  _foodName = value;
-                });
-                Navigator.of(context).pop();
-              }
-            },
-            child: const Text('Agregar',
-                style: TextStyle(
-                    color: carribean_green, fontWeight: FontWeight.bold)),
+          title: const ContraText(
+            text: 'Agregar Alimento Personalizado',
+            size: 18,
+            weight: FontWeight.bold,
+            color: wood_smoke,
+            alignment: Alignment.center,
           ),
-        ],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: athens_gray,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: wood_smoke, width: 2),
+                ),
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  style: const TextStyle(
+                    color: wood_smoke,
+                    fontSize: 16,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'Nombre del alimento',
+                    hintStyle: TextStyle(
+                      color: trout,
+                      fontSize: 16,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      hasText = value.trim().isNotEmpty;
+                    });
+                  },
+                  onSubmitted: (value) {
+                    if (value.trim().isNotEmpty) {
+                      setState(() {
+                        _foodName = value.trim();
+                      });
+                      Navigator.of(context).pop();
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: ContraButton(
+                      text: 'Cancelar',
+                      iconPath: 'assets/icons/ic_add.svg',
+                      callback: () {
+                        // Reset the food name if user cancels
+                        setState(() {
+                          _foodName = '';
+                        });
+                        Navigator.of(context).pop();
+                      },
+                      color: athens_gray,
+                      textColor: wood_smoke,
+                      borderColor: wood_smoke,
+                      shadowColor: athens_gray,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ContraButton(
+                      text: 'Agregar',
+                      iconPath: 'assets/icons/ic_add.svg',
+                      callback: hasText
+                          ? () {
+                              final value = controller.text.trim();
+                              if (value.isNotEmpty) {
+                                setState(() {
+                                  _foodName = value;
+                                });
+                                Navigator.of(context).pop();
+                              }
+                            }
+                          : () {},
+                      color: hasText ? lightening_yellow : athens_gray,
+                      textColor: hasText ? wood_smoke : trout,
+                      borderColor: wood_smoke,
+                      shadowColor: athens_gray,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

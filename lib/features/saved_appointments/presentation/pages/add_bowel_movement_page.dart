@@ -232,23 +232,11 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
             items: SymptomData.bristolStoolScale.map((stool) {
               return DropdownMenuItem<String>(
                 value: stool['type'] as String,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ContraText(
-                      text: '${stool['type']} - ${stool['description']}',
-                      size: 14,
-                      color: wood_smoke,
-                      alignment: Alignment.centerLeft,
-                    ),
-                    ContraText(
-                      text: 'Consistencia: ${stool['consistency']}',
-                      size: 12,
-                      color: trout,
-                      alignment: Alignment.centerLeft,
-                    ),
-                  ],
+                child: ContraText(
+                  text: '${stool['type']} - ${stool['description']}',
+                  size: 16,
+                  color: wood_smoke,
+                  alignment: Alignment.centerLeft,
                 ),
               );
             }).toList(),

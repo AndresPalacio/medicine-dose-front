@@ -101,16 +101,17 @@ class MedicationDoseResponse {
 
   factory MedicationDoseResponse.fromJson(Map<String, dynamic> json) {
     return MedicationDoseResponse(
-      id: json['id'],
-      medicationId: json['medicationId'],
-      medicationName: json['medicationName'] ?? 'Medicamento desconocido',
-      date: json['date'],
-      meal: json['meal'],
-      quantity: json['quantity'],
+      id: json['id']?.toString() ?? '',
+      medicationId: json['medicationId']?.toString() ?? '',
+      medicationName:
+          json['medicationName']?.toString() ?? 'Medicamento desconocido',
+      date: json['date']?.toString() ?? '',
+      meal: json['meal']?.toString() ?? 'DESAYUNO',
+      quantity: json['quantity']?.toInt() ?? 1,
       taken: json['taken'] ?? false,
-      mealTiming: json['mealTiming'],
-      timeBeforeAfter: json['timeBeforeAfter'],
-      timeUnit: json['timeUnit'],
+      mealTiming: json['mealTiming']?.toString(),
+      timeBeforeAfter: json['timeBeforeAfter']?.toInt(),
+      timeUnit: json['timeUnit']?.toString(),
     );
   }
 }
@@ -132,13 +133,14 @@ class CalendarEventResponse {
 
   factory CalendarEventResponse.fromJson(Map<String, dynamic> json) {
     return CalendarEventResponse(
-      id: json['id'],
-      title: json['title'],
-      start: json['start'],
-      description: json['description'],
-      doses: (json['doses'] as List<dynamic>)
-          .map((dose) => MedicationDoseResponse.fromJson(dose))
-          .toList(),
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? 'Evento sin título',
+      start: json['start']?.toString() ?? '',
+      description: json['description']?.toString() ?? 'Sin descripción',
+      doses: (json['doses'] as List<dynamic>?)
+              ?.map((dose) => MedicationDoseResponse.fromJson(dose))
+              .toList() ??
+          [],
     );
   }
 }
@@ -164,13 +166,14 @@ class CalendarDoseResponse {
 
   factory CalendarDoseResponse.fromJson(Map<String, dynamic> json) {
     return CalendarDoseResponse(
-      id: json['id'],
-      medicationId: json['medicationId'],
-      medicationName: json['medicationName'],
-      date: json['date'],
-      meal: json['meal'],
-      status: json['status'],
-      expectedTime: json['expectedTime'],
+      id: json['id']?.toString() ?? '',
+      medicationId: json['medicationId']?.toString() ?? '',
+      medicationName:
+          json['medicationName']?.toString() ?? 'Medicamento desconocido',
+      date: json['date']?.toString() ?? '',
+      meal: json['meal']?.toString() ?? 'DESAYUNO',
+      status: json['status']?.toString() ?? 'PENDING',
+      expectedTime: json['expectedTime']?.toString(),
     );
   }
 

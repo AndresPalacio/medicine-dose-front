@@ -185,6 +185,9 @@ class _CalendarPageState extends State<CalendarPage> {
           onDoseUpdated: () {
             // Refrescar el calendario cuando se actualiza una dosis
             setState(() {});
+            // También limpiar la caché para forzar recarga
+            final apiService = MedicationApiService();
+            apiService.clearCacheForDoseUpdate();
           },
         );
       },

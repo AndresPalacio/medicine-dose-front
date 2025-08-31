@@ -46,18 +46,22 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
       _calendarState = const DataState.loading();
     });
     try {
-      final doses = await _apiService.getCalendarEvents();
+      // Usar getMonthlyDetail que tiene caché y es más eficiente
+      final monthlyDoses = await _apiService.getMonthlyDetail(_currentMonth);
       final eventsMap = <String, List<MedicationDoseResponse>>{};
-      for (final dose in doses) {
+
+      // Agrupar las dosis por fecha
+      for (final dose in monthlyDoses) {
         if (eventsMap.containsKey(dose.date)) {
           eventsMap[dose.date]!.add(dose);
         } else {
           eventsMap[dose.date] = [dose];
         }
       }
+
       setState(() {
         _eventsMap = eventsMap;
-        _calendarState = DataState.success(value: doses);
+        _calendarState = DataState.success(value: monthlyDoses);
       });
     } catch (e) {
       setState(() {
@@ -70,6 +74,8 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
   /// Método público para refrescar los datos del calendario
   /// Útil cuando se actualiza el estado de una dosis
   Future<void> refreshCalendarEvents() async {
+    // Limpiar la caché para forzar una nueva carga
+    _apiService.clearCacheForDoseUpdate();
     await _loadCalendarEvents();
   }
 
@@ -95,6 +101,8 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
         _selectedDate = _currentMonth;
       }
     });
+    // Recargar los eventos del nuevo mes
+    _loadCalendarEvents();
   }
 
   Widget _buildMonthCalendar(DateTime month) {

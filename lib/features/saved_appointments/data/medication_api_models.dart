@@ -100,6 +100,18 @@ class MedicationDoseResponse {
   });
 
   factory MedicationDoseResponse.fromJson(Map<String, dynamic> json) {
+    // Manejar diferentes tipos de valores para el campo 'taken'
+    bool taken = false;
+    if (json['taken'] != null) {
+      if (json['taken'] is bool) {
+        taken = json['taken'];
+      } else if (json['taken'] is String) {
+        taken = json['taken'].toString().toLowerCase() == 'true';
+      } else if (json['taken'] is int) {
+        taken = json['taken'] == 1;
+      }
+    }
+
     return MedicationDoseResponse(
       id: json['id']?.toString() ?? '',
       medicationId: json['medicationId']?.toString() ?? '',
@@ -108,7 +120,7 @@ class MedicationDoseResponse {
       date: json['date']?.toString() ?? '',
       meal: json['meal']?.toString() ?? 'DESAYUNO',
       quantity: json['quantity']?.toInt() ?? 1,
-      taken: json['taken'] ?? false,
+      taken: taken,
       mealTiming: json['mealTiming']?.toString(),
       timeBeforeAfter: json['timeBeforeAfter']?.toInt(),
       timeUnit: json['timeUnit']?.toString(),

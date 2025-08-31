@@ -15,7 +15,6 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   DateTime? _selectedDate;
-  CalendarEventResponse? _selectedEvent;
 
   void _onDateSelected(DateTime date) {
     setState(() {
@@ -23,18 +22,17 @@ class _CalendarPageState extends State<CalendarPage> {
     });
   }
 
-  void _onEventSelected(CalendarEventResponse event) {
-    setState(() {
-      _selectedEvent = event;
-    });
-
-    // Mostrar un diálogo con los detalles del evento
-    _showEventDetails(event);
+  void _onEventSelected(List<MedicationDoseResponse> doses) {
+    // Mostrar un diálogo con los detalles de las dosis
+    _showDosesDetails(doses);
   }
 
-  void _showEventDetails(CalendarEventResponse event) {
-    final date = DateTime.parse(event.start);
+  void _showDosesDetails(List<MedicationDoseResponse> doses) {
+    if (doses.isEmpty) return;
+
+    final date = DateTime.parse(doses.first.date);
     final formatter = DateFormat('dd MMMM yyyy', 'es_ES');
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -74,7 +72,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 const SizedBox(height: 12),
                 ContraText(
                   alignment: Alignment.centerLeft,
-                  text: event.title,
+                  text: 'Dosis del día',
                   size: 16,
                   weight: FontWeight.bold,
                   color: wood_smoke,
@@ -84,13 +82,13 @@ class _CalendarPageState extends State<CalendarPage> {
                 const SizedBox(height: 8),
                 ContraText(
                   alignment: Alignment.centerLeft,
-                  text: 'Dosis:',
+                  text: 'Medicamentos:',
                   size: 15,
                   weight: FontWeight.bold,
                   color: trout,
                 ),
                 const SizedBox(height: 8),
-                ...event.doses.map((dose) => Padding(
+                ...doses.map((dose) => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
@@ -105,7 +103,8 @@ class _CalendarPageState extends State<CalendarPage> {
                           Expanded(
                             child: ContraText(
                               alignment: Alignment.centerLeft,
-                              text: '${dose.meal}: ${dose.quantity} unidad(es)',
+                              text:
+                                  '${dose.medicationName} - ${dose.meal}: ${dose.quantity} unidad(es)',
                               size: 14,
                               color: wood_smoke,
                             ),
@@ -147,7 +146,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       ),
                       onPressed: () {
                         Navigator.of(context).pop();
-                        _showManageDosesModal(event);
+                        _showManageDosesModal(doses);
                       },
                       child: const Text('Gestionar tomas',
                           style: TextStyle(fontWeight: FontWeight.bold)),
@@ -177,11 +176,17 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  void _showManageDosesModal(CalendarEventResponse event) {
+  void _showManageDosesModal(List<MedicationDoseResponse> doses) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return _ManageDosesDialog(event: event);
+        return _ManageDosesDialog(
+          doses: doses,
+          onDoseUpdated: () {
+            // Refrescar el calendario cuando se actualiza una dosis
+            setState(() {});
+          },
+        );
       },
     );
   }
@@ -262,8 +267,10 @@ class _CalendarPageState extends State<CalendarPage> {
 }
 
 class _ManageDosesDialog extends StatefulWidget {
-  final CalendarEventResponse event;
-  const _ManageDosesDialog({Key? key, required this.event}) : super(key: key);
+  final List<MedicationDoseResponse> doses;
+  final VoidCallback? onDoseUpdated;
+  const _ManageDosesDialog({Key? key, required this.doses, this.onDoseUpdated})
+      : super(key: key);
 
   @override
   State<_ManageDosesDialog> createState() => _ManageDosesDialogState();
@@ -277,17 +284,7 @@ class _ManageDosesDialogState extends State<_ManageDosesDialog> {
   @override
   void initState() {
     super.initState();
-    doses = widget.event.doses
-        .map((d) => MedicationDoseResponse(
-              id: d.id,
-              medicationId: d.medicationId,
-              medicationName: d.medicationName,
-              date: d.date,
-              meal: d.meal,
-              quantity: d.quantity,
-              taken: d.taken,
-            ))
-        .toList();
+    doses = List.from(widget.doses);
   }
 
   Future<void> _toggleDose(int index) async {
@@ -312,6 +309,9 @@ class _ManageDosesDialogState extends State<_ManageDosesDialog> {
           taken: !dose.taken,
         );
       });
+
+      // Notificar que se actualizó una dosis
+      widget.onDoseUpdated?.call();
     } catch (e) {
       // DEBUG
       // ignore: avoid_print

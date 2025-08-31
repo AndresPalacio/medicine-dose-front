@@ -11,7 +11,7 @@ import 'package:vibe_coding_tutorial_weather_app/utils/colors.dart';
 class InfiniteCalendarWidget extends StatefulWidget {
   final DateTime? initialDate;
   final Function(DateTime)? onDateSelected;
-  final Function(CalendarEventResponse)? onEventSelected;
+  final Function(List<MedicationDoseResponse>)? onEventSelected;
 
   const InfiniteCalendarWidget({
     Key? key,
@@ -29,9 +29,9 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
   late DateTime _currentMonth;
   final MedicationApiService _apiService = MedicationApiService();
 
-  DataState<List<CalendarEventResponse>> _calendarState =
+  DataState<List<MedicationDoseResponse>> _calendarState =
       const DataState.loading();
-  Map<String, CalendarEventResponse> _eventsMap = {};
+  Map<String, List<MedicationDoseResponse>> _eventsMap = {};
 
   @override
   void initState() {
@@ -46,14 +46,18 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
       _calendarState = const DataState.loading();
     });
     try {
-      final events = await _apiService.getCalendarEvents();
-      final eventsMap = <String, CalendarEventResponse>{};
-      for (final event in events) {
-        eventsMap[event.start] = event;
+      final doses = await _apiService.getCalendarEvents();
+      final eventsMap = <String, List<MedicationDoseResponse>>{};
+      for (final dose in doses) {
+        if (eventsMap.containsKey(dose.date)) {
+          eventsMap[dose.date]!.add(dose);
+        } else {
+          eventsMap[dose.date] = [dose];
+        }
       }
       setState(() {
         _eventsMap = eventsMap;
-        _calendarState = DataState.success(value: events);
+        _calendarState = DataState.success(value: doses);
       });
     } catch (e) {
       setState(() {
@@ -63,15 +67,21 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
     }
   }
 
+  /// Método público para refrescar los datos del calendario
+  /// Útil cuando se actualiza el estado de una dosis
+  Future<void> refreshCalendarEvents() async {
+    await _loadCalendarEvents();
+  }
+
   void _onDateSelected(DateTime date) {
     setState(() {
       _selectedDate = date;
     });
     widget.onDateSelected?.call(date);
     final dateString = DateFormat('yyyy-MM-dd').format(date);
-    final event = _eventsMap[dateString];
-    if (event != null) {
-      widget.onEventSelected?.call(event);
+    final doses = _eventsMap[dateString];
+    if (doses != null && doses.isNotEmpty) {
+      widget.onEventSelected?.call(doses);
     }
   }
 
@@ -290,11 +300,11 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
         ),
       );
     }
-    // Filtrar eventos del mes actual
+    // Filtrar dosis del mes actual
     final monthString = DateFormat('yyyy-MM').format(_currentMonth);
-    final monthEvents =
-        events.where((e) => e.start.startsWith(monthString)).toList();
-    if (monthEvents.isEmpty) {
+    final monthDoses =
+        events.where((d) => d.date.startsWith(monthString)).toList();
+    if (monthDoses.isEmpty) {
       return Center(
         child: ContraText(
           alignment: Alignment.center,
@@ -305,16 +315,16 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
       );
     }
     return ListView.builder(
-      itemCount: monthEvents.length,
+      itemCount: monthDoses.length,
       itemBuilder: (context, index) {
-        final event = monthEvents[index];
-        return _buildEventCard(event);
+        final dose = monthDoses[index];
+        return _buildEventCard(dose);
       },
     );
   }
 
-  Widget _buildEventCard(CalendarEventResponse event) {
-    final date = DateTime.parse(event.start);
+  Widget _buildEventCard(MedicationDoseResponse dose) {
+    final date = DateTime.parse(dose.date);
     final formatter = DateFormat('dd MMMM yyyy', 'es_ES');
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
@@ -359,20 +369,18 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
           const SizedBox(height: 8),
           ContraText(
             alignment: Alignment.centerLeft,
-            text: event.title,
+            text: '${dose.medicationName} - ${dose.meal}',
             size: 16,
             weight: FontWeight.bold,
             color: carribean_green,
           ),
-          if (event.description.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            ContraText(
-              alignment: Alignment.centerLeft,
-              text: event.description,
-              size: 12,
-              color: trout,
-            ),
-          ],
+          const SizedBox(height: 4),
+          ContraText(
+            alignment: Alignment.centerLeft,
+            text: 'Tomar ${dose.quantity} pastilla(s)',
+            size: 12,
+            color: trout,
+          ),
         ],
       ),
     );

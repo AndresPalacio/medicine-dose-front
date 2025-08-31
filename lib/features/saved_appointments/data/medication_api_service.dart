@@ -59,7 +59,7 @@ class MedicationApiService {
     }
   }
 
-  Future<List<CalendarEventResponse>> getCalendarEvents() async {
+  Future<List<MedicationDoseResponse>> getCalendarEvents() async {
     try {
       final response = await http
           .get(Uri.parse('$_baseUrl/medications/calendar?userId=main'))
@@ -68,7 +68,7 @@ class MedicationApiService {
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
         return body
-            .map((dynamic item) => CalendarEventResponse.fromJson(item))
+            .map((dynamic item) => MedicationDoseResponse.fromJson(item))
             .toList();
       } else {
         throw Exception(
@@ -77,63 +77,59 @@ class MedicationApiService {
     } catch (e) {
       // Si hay error de conexión, devolver datos de ejemplo
       print('DEBUG getCalendarEvents: Error connecting to server: $e');
-      return _getMockCalendarEvents();
+      return _getMockCalendarDoses();
     }
   }
 
   // Método para generar datos de ejemplo cuando el servidor no está disponible
-  List<CalendarEventResponse> _getMockCalendarEvents() {
+  List<MedicationDoseResponse> _getMockCalendarDoses() {
     final now = DateTime.now();
     final today = DateFormat('yyyy-MM-dd').format(now);
     final tomorrow =
         DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 1)));
 
     return [
-      CalendarEventResponse(
-        id: 'mock-1',
-        title: 'ESOZ 40MG - Desayuno',
-        start: today,
-        description: 'Tomar 1 cápsula con el desayuno',
-        doses: [
-          MedicationDoseResponse(
-            id: '1',
-            medicationId: 'mock-med-1',
-            medicationName: 'ESOZ 40MG',
-            date: today,
-            meal: 'DESAYUNO',
-            quantity: 1,
-            taken: false,
-            mealTiming: 'DURANTE',
-            timeBeforeAfter: 0,
-            timeUnit: 'MINUTOS',
-          ),
-        ],
+      MedicationDoseResponse(
+        id: '1',
+        medicationId: 'mock-med-1',
+        medicationName: 'ESOZ 40MG',
+        date: today,
+        meal: '08:00',
+        quantity: 1,
+        taken: true, // Marcada como tomada
+        mealTiming: 'INDIFERENTE',
+        timeBeforeAfter: 0,
+        timeUnit: 'MINUTOS',
       ),
-      CalendarEventResponse(
-        id: 'mock-2',
-        title: 'ESOZ 40MG - Desayuno',
-        start: tomorrow,
-        description: 'Tomar 1 cápsula con el desayuno',
-        doses: [
-          MedicationDoseResponse(
-            id: '2',
-            medicationId: 'mock-med-1',
-            medicationName: 'ESOZ 40MG',
-            date: tomorrow,
-            meal: 'DESAYUNO',
-            quantity: 1,
-            taken: false,
-            mealTiming: 'DURANTE',
-            timeBeforeAfter: 0,
-            timeUnit: 'MINUTOS',
-          ),
-        ],
+      MedicationDoseResponse(
+        id: '2',
+        medicationId: 'mock-med-1',
+        medicationName: 'ESOZ 40MG',
+        date: today,
+        meal: '20:00',
+        quantity: 1,
+        taken: false, // Pendiente
+        mealTiming: 'INDIFERENTE',
+        timeBeforeAfter: 0,
+        timeUnit: 'MINUTOS',
+      ),
+      MedicationDoseResponse(
+        id: '3',
+        medicationId: 'mock-med-2',
+        medicationName: 'PRUEBA',
+        date: tomorrow,
+        meal: '08:00',
+        quantity: 1,
+        taken: false,
+        mealTiming: 'INDIFERENTE',
+        timeBeforeAfter: 0,
+        timeUnit: 'MINUTOS',
       ),
     ];
   }
 
   // Método adicional para obtener eventos del calendario con parámetros de fecha
-  Future<List<CalendarEventResponse>> getCalendarEventsByDate(
+  Future<List<MedicationDoseResponse>> getCalendarEventsByDate(
       DateTime date) async {
     final formattedDate = DateFormat('yyyy-MM-dd').format(date);
     final response = await http.get(Uri.parse(
@@ -142,7 +138,7 @@ class MedicationApiService {
     if (response.statusCode == 200) {
       List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
       return body
-          .map((dynamic item) => CalendarEventResponse.fromJson(item))
+          .map((dynamic item) => MedicationDoseResponse.fromJson(item))
           .toList();
     } else {
       throw Exception('Failed to load calendar events');
@@ -243,6 +239,16 @@ class MedicationApiService {
     print('DEBUG clearMonthlyCache → Cache cleared');
   }
 
+  /// Limpia la caché cuando se actualiza el estado de una dosis
+  /// Esto fuerza a recargar los datos del servidor
+  void clearCacheForDoseUpdate() {
+    _monthlyCache.clear();
+    _currentCachedMonth = null;
+    // DEBUG
+    // ignore: avoid_print
+    print('DEBUG clearCacheForDoseUpdate → Cache cleared for dose update');
+  }
+
   /// Obtiene medicamentos para un día específico desde la caché mensual
   /// Si no hay caché, hace la petición completa del mes
   Future<List<MedicationDoseResponse>> getDailyDetailFromCache(
@@ -275,21 +281,57 @@ class MedicationApiService {
     print(
         'DEBUG markDoseAsTaken → PUT $url (doseId=$doseId, isTaken=$isTaken)');
 
-    final response = await http.put(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json; charset=UTF-8'},
-    );
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      );
 
-    // DEBUG
-    // ignore: avoid_print
-    print(
-        'DEBUG markDoseAsTaken ← status=${response.statusCode} body=${utf8.decode(response.bodyBytes)}');
+      // DEBUG
+      // ignore: avoid_print
+      print(
+          'DEBUG markDoseAsTaken ← status=${response.statusCode} body=${utf8.decode(response.bodyBytes)}');
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to update dose status');
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update dose status');
+      }
+
+      // Actualizar la caché local si la petición fue exitosa
+      _updateCacheForDose(doseId, isTaken);
+    } catch (e) {
+      // Si hay error de conexión, actualizar la caché local de todas formas
+      // para que la UI se vea actualizada inmediatamente
+      print('DEBUG markDoseAsTaken: Error connecting to server: $e');
+      _updateCacheForDose(doseId, isTaken);
     }
+  }
 
-    // Nota: La caché se actualiza localmente en la UI, no se limpia aquí
+  /// Actualiza la caché local cuando se marca una dosis como tomada
+  void _updateCacheForDose(String doseId, bool isTaken) {
+    for (final monthKey in _monthlyCache.keys) {
+      final doses = _monthlyCache[monthKey]!;
+      for (int i = 0; i < doses.length; i++) {
+        if (doses[i].id == doseId) {
+          // Crear una nueva instancia con el estado actualizado
+          final updatedDose = MedicationDoseResponse(
+            id: doses[i].id,
+            medicationId: doses[i].medicationId,
+            medicationName: doses[i].medicationName,
+            date: doses[i].date,
+            meal: doses[i].meal,
+            quantity: doses[i].quantity,
+            taken: isTaken,
+            mealTiming: doses[i].mealTiming,
+            timeBeforeAfter: doses[i].timeBeforeAfter,
+            timeUnit: doses[i].timeUnit,
+          );
+          doses[i] = updatedDose;
+          print(
+              'DEBUG _updateCacheForDose: Updated dose $doseId to taken=$isTaken');
+          return;
+        }
+      }
+    }
   }
 
   Future<void> createMedication(MedicationPlan plan) async {

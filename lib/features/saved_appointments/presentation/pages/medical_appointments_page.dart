@@ -21,13 +21,86 @@ class _MedicalAppointmentsPageState extends State<MedicalAppointmentsPage> {
   List<MedicalAppointment> _appointments = [];
   bool _isLoading = true;
   String? _error;
+  bool _isBackendConnected = false;
 
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
     _currentMonth = DateTime(_selectedDate.year, _selectedDate.month, 1);
-    _loadAppointments();
+    _testBackendConnection();
+  }
+
+  Future<void> _testBackendConnection() async {
+    try {
+      // Intentar obtener citas del mes actual para probar la conexión
+      await _appointmentService.getMonthlyAppointments(_currentMonth);
+      setState(() {
+        _isBackendConnected = true;
+      });
+      // Si la conexión es exitosa, cargar las citas
+      await _loadAppointments();
+    } catch (e) {
+      setState(() {
+        _isBackendConnected = false;
+        _error =
+            'No se pudo conectar con el backend. Verifica que esté ejecutándose en http://localhost:8080';
+        _isLoading = false;
+      });
+      print('DEBUG _testBackendConnection → Error de conexión: $e');
+
+      // Cargar citas locales si no hay conexión
+      _loadLocalAppointments();
+    }
+  }
+
+  void _loadLocalAppointments() {
+    // En modo sin conexión, mostrar citas vacías
+    setState(() {
+      _appointments = [];
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _testDifferentEndpoints() async {
+    print('DEBUG _testDifferentEndpoints → Probando diferentes endpoints...');
+
+    try {
+      // Probar endpoint con fecha del mes actual (formato daily)
+      print(
+          'DEBUG _testDifferentEndpoints → Probando endpoint con fecha del mes...');
+      final response1 =
+          await _appointmentService.getMonthlyAppointments(_currentMonth);
+      print(
+          'DEBUG _testDifferentEndpoints → Endpoint mensual: OK - ${response1.length} citas');
+
+      // Probar endpoint con fecha específica (formato daily)
+      print(
+          'DEBUG _testDifferentEndpoints → Probando endpoint con fecha específica...');
+      final today = DateTime.now();
+      final response2 = await _appointmentService.getAppointmentsByDate(today);
+      print(
+          'DEBUG _testDifferentEndpoints → Endpoint con fecha: OK - ${response2.length} citas');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Todos los endpoints funcionan correctamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('DEBUG _testDifferentEndpoints → Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error probando endpoints: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadAppointments() async {
@@ -37,22 +110,44 @@ class _MedicalAppointmentsPageState extends State<MedicalAppointmentsPage> {
     });
 
     try {
-      // Obtener citas del mes actual
-      final startDate = DateTime(_currentMonth.year, _currentMonth.month, 1);
-      final endDate = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
+      print('DEBUG _loadAppointments → Iniciando carga de citas del mes...');
 
-      final appointments = await _appointmentService.getAppointmentsByDateRange(
-          startDate, endDate);
+      // Usar el nuevo método que envía fecha como en daily
+      final monthAppointments =
+          await _appointmentService.getMonthlyAppointments(_currentMonth);
+      print(
+          'DEBUG _loadAppointments → Citas del mes obtenidas: ${monthAppointments.length}');
 
       setState(() {
-        _appointments = appointments;
+        _appointments = monthAppointments;
         _isLoading = false;
+        _error = null;
       });
     } catch (e) {
+      String errorMessage;
+      print('DEBUG _loadAppointments → Error completo: $e');
+
+      if (e.toString().contains('Failed to load monthly appointments')) {
+        errorMessage =
+            'No se pudo conectar con el servidor. Verifica que el backend esté ejecutándose en http://localhost:8080';
+      } else if (e.toString().contains('Connection refused')) {
+        errorMessage =
+            'Error de conexión: El servidor no está respondiendo. Verifica que el backend esté ejecutándose.';
+      } else if (e
+          .toString()
+          .contains('Debe proporcionar date o startDate y endDate')) {
+        errorMessage =
+            'Error del backend: El servidor requiere parámetros específicos de fecha. Contacta al administrador.';
+      } else {
+        errorMessage = 'Error al cargar las citas: $e';
+      }
+
       setState(() {
-        _error = 'Error al cargar las citas: $e';
+        _error = errorMessage;
         _isLoading = false;
       });
+
+      print('DEBUG _loadAppointments → Error final: $errorMessage');
     }
   }
 
@@ -81,13 +176,76 @@ class _MedicalAppointmentsPageState extends State<MedicalAppointmentsPage> {
         builder: (context) => _ManageAppointmentsDayDialog(
           date: date,
           appointments: citasDelDia,
-          onUpdate: (updated) {
+          onUpdate: (updated) async {
+            // Mostrar indicador de carga
             setState(() {
-              for (final appt in updated) {
-                final idx = _appointments.indexWhere((a) => a.id == appt.id);
-                if (idx != -1) _appointments[idx] = appt;
-              }
+              _isLoading = true;
+              _error = null;
             });
+
+            try {
+              bool allSuccess = true;
+
+              if (_isBackendConnected) {
+                // Actualizar en el backend
+                for (final appt in updated) {
+                  final success =
+                      await _appointmentService.updateAppointment(appt);
+                  if (!success) {
+                    allSuccess = false;
+                    break;
+                  }
+                }
+
+                if (allSuccess) {
+                  // Recargar citas desde el servidor
+                  await _loadAppointments();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Estados actualizados correctamente'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                }
+              } else {
+                // Modo sin conexión - actualizar localmente
+                setState(() {
+                  for (final appt in updated) {
+                    final idx =
+                        _appointments.indexWhere((a) => a.id == appt.id);
+                    if (idx != -1) _appointments[idx] = appt;
+                  }
+                });
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Estados actualizados localmente (sin conexión)'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              }
+            } catch (e) {
+              setState(() {
+                _error = 'Error al actualizar estados: $e';
+              });
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            } finally {
+              setState(() {
+                _isLoading = false;
+              });
+            }
           },
         ),
       );
@@ -100,10 +258,87 @@ class _MedicalAppointmentsPageState extends State<MedicalAppointmentsPage> {
       builder: (context) => _MedicalAppointmentDetailsDialog(
         appointment: appt,
         onEdit: () => _showEditAppointmentDialog(appt),
-        onDelete: () => setState(() {
-          _appointments.removeWhere((a) => a.id == appt.id);
-          Navigator.of(context).pop();
-        }),
+        onDelete: () async {
+          // Mostrar confirmación antes de eliminar
+          final shouldDelete = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Confirmar eliminación'),
+              content: const Text(
+                  '¿Estás seguro de que quieres eliminar esta cita?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancelar'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Eliminar'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldDelete == true) {
+            setState(() {
+              _isLoading = true;
+              _error = null;
+            });
+
+            try {
+              bool success = false;
+
+              if (_isBackendConnected) {
+                // Intentar eliminar en el backend
+                success = await _appointmentService.deleteAppointment(appt.id);
+                if (success) {
+                  // Recargar citas desde el servidor
+                  await _loadAppointments();
+                }
+              } else {
+                // Modo sin conexión - eliminar localmente
+                setState(() {
+                  _appointments.removeWhere((a) => a.id == appt.id);
+                });
+                success = true;
+              }
+
+              if (success) {
+                Navigator.of(context).pop();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(_isBackendConnected
+                          ? 'Cita eliminada correctamente'
+                          : 'Cita eliminada localmente (sin conexión)'),
+                      backgroundColor:
+                          _isBackendConnected ? Colors.green : Colors.orange,
+                    ),
+                  );
+                }
+              } else {
+                throw Exception('Error al eliminar la cita');
+              }
+            } catch (e) {
+              setState(() {
+                _error = 'Error al eliminar la cita: $e';
+              });
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            } finally {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          }
+        },
       ),
     );
   }
@@ -113,16 +348,97 @@ class _MedicalAppointmentsPageState extends State<MedicalAppointmentsPage> {
       context: context,
       builder: (context) => _MedicalAppointmentEditDialog(
         appointment: appt,
-        onSave: (newAppt) {
+        onSave: (newAppt) async {
+          // Mostrar indicador de carga
           setState(() {
-            if (appt == null) {
-              _appointments.add(newAppt);
-            } else {
-              final idx = _appointments.indexWhere((a) => a.id == appt.id);
-              if (idx != -1) _appointments[idx] = newAppt;
-            }
+            _isLoading = true;
+            _error = null;
           });
-          Navigator.of(context).pop();
+
+          try {
+            bool success = false;
+
+            if (_isBackendConnected) {
+              // Intentar guardar en el backend
+              if (appt == null) {
+                // Crear nueva cita
+                success = await _appointmentService.createAppointment(newAppt);
+              } else {
+                // Actualizar cita existente
+                success = await _appointmentService.updateAppointment(newAppt);
+              }
+
+              if (success) {
+                // Recargar citas desde el servidor
+                await _loadAppointments();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(appt == null
+                          ? 'Cita creada correctamente'
+                          : 'Cita actualizada correctamente'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } else {
+                throw Exception('Error al guardar la cita en el servidor');
+              }
+            } else {
+              // Modo sin conexión - guardar localmente
+              if (appt == null) {
+                // Agregar nueva cita local
+                setState(() {
+                  _appointments.add(newAppt);
+                });
+                success = true;
+              } else {
+                // Actualizar cita local
+                final idx = _appointments.indexWhere((a) => a.id == appt.id);
+                if (idx != -1) {
+                  setState(() {
+                    _appointments[idx] = newAppt;
+                  });
+                  success = true;
+                }
+              }
+
+              if (success) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(appt == null
+                          ? 'Cita creada localmente (sin conexión)'
+                          : 'Cita actualizada localmente (sin conexión)'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              }
+            }
+
+            if (success) {
+              Navigator.of(context).pop();
+            } else {
+              throw Exception('Error al guardar la cita');
+            }
+          } catch (e) {
+            setState(() {
+              _error = 'Error al guardar la cita: $e';
+            });
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          } finally {
+            setState(() {
+              _isLoading = false;
+            });
+          }
         },
       ),
     );
@@ -162,9 +478,11 @@ class _MedicalAppointmentsPageState extends State<MedicalAppointmentsPage> {
         days.add(_buildEmptyDay());
       }
     }
-    final monthString = DateFormat('yyyy-MM').format(_currentMonth);
+    // Filtrar citas del mes actual directamente usando DateTime
     final monthAppointments = _appointments
-        .where((a) => DateFormat('yyyy-MM').format(a.dateTime) == monthString)
+        .where((a) =>
+            a.dateTime.year == _currentMonth.year &&
+            a.dateTime.month == _currentMonth.month)
         .toList();
     monthAppointments.sort((a, b) => a.dateTime.compareTo(b.dateTime));
 
@@ -173,123 +491,269 @@ class _MedicalAppointmentsPageState extends State<MedicalAppointmentsPage> {
       appBar: AppBar(
         backgroundColor: white,
         elevation: 0,
-        title: const ContraText(
-          alignment: Alignment.centerLeft,
-          text: 'Citas Médicas',
-          size: 20,
-          weight: FontWeight.bold,
-          color: wood_smoke,
+        title: Row(
+          children: [
+            const ContraText(
+              alignment: Alignment.centerLeft,
+              text: 'Citas Médicas',
+              size: 20,
+              weight: FontWeight.bold,
+              color: wood_smoke,
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: _isBackendConnected ? Colors.green : Colors.red,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: wood_smoke),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          if (!_isBackendConnected)
+            IconButton(
+              icon: const Icon(Icons.refresh, color: wood_smoke),
+              onPressed: _testBackendConnection,
+              tooltip: 'Reintentar conexión',
+            ),
+          IconButton(
+            icon: const Icon(Icons.bug_report, color: wood_smoke),
+            onPressed: _testDifferentEndpoints,
+            tooltip: 'Probar endpoints',
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: carribean_green,
-        child: const Icon(Icons.add, color: white),
-        onPressed: () => _showEditAppointmentDialog(),
+        child: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Icon(Icons.add, color: white),
+        onPressed: _isLoading ? null : () => _showEditAppointmentDialog(),
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  color: selago,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : _error != null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          ContraButtonRound(
-                            borderColor: wood_smoke,
-                            shadowColor: athens_gray,
-                            color: white,
-                            iconPath: "assets/icons/arrow_back.svg",
-                            callback: () => _navigateToMonth(-1),
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: Colors.red[300],
                           ),
-                          Expanded(
-                            child: ContraText(
-                              alignment: Alignment.center,
-                              text: DateFormat('MMMM yyyy', 'es_ES')
-                                  .format(_currentMonth),
-                              size: 18,
-                              weight: FontWeight.bold,
-                              color: wood_smoke,
+                          const SizedBox(height: 16),
+                          Text(
+                            'Error al cargar las citas',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red[700],
                             ),
                           ),
-                          ContraButtonRound(
-                            borderColor: wood_smoke,
-                            shadowColor: athens_gray,
-                            color: white,
-                            iconPath: "assets/icons/arrow_forward.svg",
-                            callback: () => _navigateToMonth(1),
+                          const SizedBox(height: 8),
+                          Text(
+                            _error!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.red[600]),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _loadAppointments,
+                            child: const Text('Reintentar'),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children:
-                            ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-                                .map((day) => Expanded(
-                                      child: Center(
-                                        child: ContraText(
-                                          alignment: Alignment.center,
-                                          text: day,
-                                          size: 12,
-                                          weight: FontWeight.bold,
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            color: selago,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 0),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    ContraButtonRound(
+                                      borderColor: wood_smoke,
+                                      shadowColor: athens_gray,
+                                      color: white,
+                                      iconPath: "assets/icons/arrow_back.svg",
+                                      callback: () => _navigateToMonth(-1),
+                                    ),
+                                    Expanded(
+                                      child: ContraText(
+                                        alignment: Alignment.center,
+                                        text: DateFormat('MMMM yyyy', 'es_ES')
+                                            .format(_currentMonth),
+                                        size: 18,
+                                        weight: FontWeight.bold,
+                                        color: wood_smoke,
+                                      ),
+                                    ),
+                                    ContraButtonRound(
+                                      borderColor: wood_smoke,
+                                      shadowColor: athens_gray,
+                                      color: white,
+                                      iconPath:
+                                          "assets/icons/arrow_forward.svg",
+                                      callback: () => _navigateToMonth(1),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    'Lun',
+                                    'Mar',
+                                    'Mié',
+                                    'Jue',
+                                    'Vie',
+                                    'Sáb',
+                                    'Dom'
+                                  ]
+                                      .map((day) => Expanded(
+                                            child: Center(
+                                              child: ContraText(
+                                                alignment: Alignment.center,
+                                                text: day,
+                                                size: 12,
+                                                weight: FontWeight.bold,
+                                                color: trout,
+                                              ),
+                                            ),
+                                          ))
+                                      .toList(),
+                                ),
+                                const SizedBox(height: 8),
+                                GridView.count(
+                                  crossAxisCount: 7,
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  children: days,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const ContraText(
+                            alignment: Alignment.centerLeft,
+                            text: 'Citas del Mes',
+                            size: 18,
+                            weight: FontWeight.bold,
+                            color: wood_smoke,
+                          ),
+                          const SizedBox(height: 12),
+                          if (!_isBackendConnected)
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.orange[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.orange[300]!),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.warning_amber,
+                                      color: Colors.orange[700]),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Modo sin conexión',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.orange[700],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'No se puede conectar con el servidor. Las citas se guardarán localmente.',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.orange[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          SizedBox(
+                            height: 350,
+                            child: monthAppointments.isEmpty
+                                ? Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.event_busy,
+                                          size: 64,
                                           color: trout,
                                         ),
-                                      ),
-                                    ))
-                                .toList(),
-                      ),
-                      const SizedBox(height: 8),
-                      GridView.count(
-                        crossAxisCount: 7,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: days,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const ContraText(
-                  alignment: Alignment.centerLeft,
-                  text: 'Citas del Mes',
-                  size: 18,
-                  weight: FontWeight.bold,
-                  color: wood_smoke,
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 350,
-                  child: monthAppointments.isEmpty
-                      ? Center(
-                          child: ContraText(
-                            alignment: Alignment.center,
-                            text: 'No hay citas para este mes',
-                            size: 16,
-                            color: trout,
+                                        const SizedBox(height: 16),
+                                        ContraText(
+                                          alignment: Alignment.center,
+                                          text: _isBackendConnected
+                                              ? 'No hay citas para este mes'
+                                              : 'No se pueden cargar las citas',
+                                          size: 16,
+                                          color: trout,
+                                        ),
+                                        if (!_isBackendConnected) ...[
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Verifica la conexión con el backend',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: trout,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    itemCount: monthAppointments.length,
+                                    itemBuilder: (context, index) {
+                                      final appt = monthAppointments[index];
+                                      return _buildAppointmentCard(appt);
+                                    },
+                                  ),
                           ),
-                        )
-                      : ListView.builder(
-                          itemCount: monthAppointments.length,
-                          itemBuilder: (context, index) {
-                            final appt = monthAppointments[index];
-                            return _buildAppointmentCard(appt);
-                          },
-                        ),
-                ),
-              ],
-            ),
-          ),
+                        ],
+                      ),
+                    ),
         ),
       ),
     );
@@ -355,6 +819,9 @@ class _MedicalAppointmentsPageState extends State<MedicalAppointmentsPage> {
         break;
       case 'Cancelada':
         statusColor = mona_lisa;
+        break;
+      case 'Programada':
+        statusColor = moody_blue;
         break;
       default:
         statusColor = moody_blue;
@@ -458,6 +925,9 @@ class _MedicalAppointmentDetailsDialog extends StatelessWidget {
         break;
       case 'Cancelada':
         statusColor = mona_lisa;
+        break;
+      case 'Programada':
+        statusColor = moody_blue;
         break;
       default:
         statusColor = moody_blue;
@@ -607,7 +1077,16 @@ class _MedicalAppointmentEditDialogState
     _specialtyController = TextEditingController(text: appt?.specialty ?? '');
     _date = appt?.dateTime ?? DateTime.now();
     _time = TimeOfDay.fromDateTime(appt?.dateTime ?? DateTime.now());
-    _status = appt?.status ?? 'Pendiente';
+
+    // Validar que el estado esté en la lista de estados válidos
+    final validStatuses = [
+      'Pendiente',
+      'Confirmada',
+      'Cancelada',
+      'Programada'
+    ];
+    final apptStatus = appt?.status ?? 'Pendiente';
+    _status = validStatuses.contains(apptStatus) ? apptStatus : 'Pendiente';
   }
 
   @override
@@ -618,6 +1097,17 @@ class _MedicalAppointmentEditDialogState
   }
 
   void _save() {
+    // Validar que el estado sea válido
+    final validStatuses = [
+      'Pendiente',
+      'Confirmada',
+      'Cancelada',
+      'Programada'
+    ];
+    if (!validStatuses.contains(_status)) {
+      _status = 'Pendiente'; // Estado por defecto si no es válido
+    }
+
     final dt =
         DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
     final newAppt = MedicalAppointment(
@@ -712,7 +1202,12 @@ class _MedicalAppointmentEditDialogState
               _buildDropdownField(
                 label: 'Estado',
                 value: _status,
-                items: const ['Pendiente', 'Confirmada', 'Cancelada'],
+                items: const [
+                  'Pendiente',
+                  'Confirmada',
+                  'Cancelada',
+                  'Programada'
+                ],
                 onChanged: (val) =>
                     setState(() => _status = val ?? 'Pendiente'),
               ),
@@ -1004,6 +1499,9 @@ class _ManageAppointmentsDayDialogState
                                   DropdownMenuItem(
                                       value: 'Cancelada',
                                       child: Text('Cancelada')),
+                                  DropdownMenuItem(
+                                      value: 'Programada',
+                                      child: Text('Programada')),
                                 ],
                                 onChanged: (val) {
                                   if (val != null) _updateStatus(i, val);

@@ -26,6 +26,7 @@ class _AddFoodPageState extends State<AddFoodPage> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _descriptionController;
   late TextEditingController _portionController;
+  late TextEditingController _ingredientsController;
 
   String _selectedMealType = '';
   String _foodName = '';
@@ -45,6 +46,7 @@ class _AddFoodPageState extends State<AddFoodPage> {
     _time = DateFormat('HH:mm').format(DateTime.now());
     _descriptionController = TextEditingController(text: _description);
     _portionController = TextEditingController(text: _portion);
+    _ingredientsController = TextEditingController(text: _ingredients);
 
     if (widget.editingEntry != null) {
       _loadEditingData();
@@ -61,6 +63,7 @@ class _AddFoodPageState extends State<AddFoodPage> {
     _portion = entry.portion ?? '';
     _portionController.text = _portion;
     _ingredients = entry.ingredients ?? '';
+    _ingredientsController.text = _ingredients;
     _causedDiscomfort = entry.causedDiscomfort ?? false;
     _discomfortNotes = entry.discomfortNotes ?? '';
   }
@@ -69,6 +72,7 @@ class _AddFoodPageState extends State<AddFoodPage> {
   void dispose() {
     _descriptionController.dispose();
     _portionController.dispose();
+    _ingredientsController.dispose();
     super.dispose();
   }
 
@@ -504,14 +508,17 @@ class _AddFoodPageState extends State<AddFoodPage> {
             border: Border.all(color: wood_smoke, width: 2),
           ),
           child: TextField(
-            style: const TextStyle(color: wood_smoke),
+            controller: _ingredientsController,
+            style: const TextStyle(
+              color: wood_smoke,
+              fontSize: 16,
+            ),
             decoration: const InputDecoration(
               hintText:
                   'Ej: La pasta tiene queso con parmesano, salsa de tomate...',
               hintStyle: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
                 color: trout,
+                fontSize: 16,
               ),
               border: InputBorder.none,
             ),
@@ -521,7 +528,6 @@ class _AddFoodPageState extends State<AddFoodPage> {
                 _ingredients = value;
               });
             },
-            controller: TextEditingController(text: _ingredients),
           ),
         ),
       ],

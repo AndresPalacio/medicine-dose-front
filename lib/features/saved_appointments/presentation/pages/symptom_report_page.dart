@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_button.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_text.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/custom_header.dart';
-import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_service.dart';
+import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_api_service.dart';
 import 'package:vibe_coding_tutorial_weather_app/utils/colors.dart';
 
 class SymptomReportPage extends StatefulWidget {
@@ -14,12 +14,14 @@ class SymptomReportPage extends StatefulWidget {
 }
 
 class _SymptomReportPageState extends State<SymptomReportPage> {
-  final SymptomService _symptomService = SymptomService();
+  final SymptomApiService _symptomService = SymptomApiService();
 
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _endDate = DateTime.now();
   String _reportText = '';
   bool _isGenerating = false;
+  bool _isBackendConnected = false;
+  String? _error;
 
   @override
   void initState() {
@@ -30,20 +32,102 @@ class _SymptomReportPageState extends State<SymptomReportPage> {
   Future<void> _generateReport() async {
     setState(() {
       _isGenerating = true;
+      _error = null;
     });
 
     try {
+      print('DEBUG _generateReport → Iniciando generación de reporte...');
+      print('DEBUG _generateReport → Período: $_startDate - $_endDate');
+
+      // Probar conexión con el backend
+      await _testBackendConnection();
+
+      if (!_isBackendConnected) {
+        setState(() {
+          _reportText =
+              'No se puede conectar con el backend. Verifica que esté ejecutándose en http://localhost:8080';
+          _isGenerating = false;
+        });
+        return;
+      }
+
       final report =
           await _symptomService.generateMedicalReport(_startDate, _endDate);
+
       setState(() {
         _reportText = report;
         _isGenerating = false;
+        _error = null;
       });
+
+      print('DEBUG _generateReport → Reporte generado exitosamente');
     } catch (e) {
+      print('DEBUG _generateReport → Error: $e');
       setState(() {
-        _reportText = 'Error al generar el reporte: $e';
+        _error = 'Error al generar el reporte: $e';
+        _reportText =
+            'Error al generar el reporte. Verifica la conexión con el backend.';
         _isGenerating = false;
       });
+    }
+  }
+
+  Future<void> _testBackendConnection() async {
+    try {
+      // Intentar obtener síntomas para probar la conexión
+      await _symptomService.getAllSymptomEntries();
+      setState(() {
+        _isBackendConnected = true;
+      });
+      print('DEBUG _testBackendConnection → Conexión exitosa con el backend');
+    } catch (e) {
+      setState(() {
+        _isBackendConnected = false;
+      });
+      print('DEBUG _testBackendConnection → Error de conexión: $e');
+    }
+  }
+
+  Future<void> _testEndpoints() async {
+    print('DEBUG _testEndpoints → Probando endpoints del backend...');
+
+    try {
+      // Probar endpoint de síntomas
+      print('DEBUG _testEndpoints → Probando endpoint de síntomas...');
+      final symptoms = await _symptomService.getAllSymptomEntries();
+      print(
+          'DEBUG _testEndpoints → Endpoint síntomas: OK - ${symptoms.length} registros');
+
+      // Probar endpoint de alimentos
+      print('DEBUG _testEndpoints → Probando endpoint de alimentos...');
+      final foods = await _symptomService.getAllFoodEntries();
+      print(
+          'DEBUG _testEndpoints → Endpoint alimentos: OK - ${foods.length} registros');
+
+      // Probar endpoint de deposiciones
+      print('DEBUG _testEndpoints → Probando endpoint de deposiciones...');
+      final bowel = await _symptomService.getAllBowelMovementEntries();
+      print(
+          'DEBUG _testEndpoints → Endpoint deposiciones: OK - ${bowel.length} registros');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Todos los endpoints funcionan correctamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('DEBUG _testEndpoints → Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error probando endpoints: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -100,14 +184,39 @@ class _SymptomReportPageState extends State<SymptomReportPage> {
           icon: const Icon(Icons.arrow_back, color: wood_smoke),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const ContraText(
-          text: 'Reporte Médico',
-          size: 20,
-          weight: FontWeight.bold,
-          color: wood_smoke,
-          alignment: Alignment.center,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const ContraText(
+              text: 'Reporte Médico',
+              size: 20,
+              weight: FontWeight.bold,
+              color: wood_smoke,
+              alignment: Alignment.center,
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: _isBackendConnected ? Colors.green : Colors.red,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
         ),
         actions: [
+          if (!_isBackendConnected)
+            IconButton(
+              icon: const Icon(Icons.refresh, color: wood_smoke),
+              onPressed: _testBackendConnection,
+              tooltip: 'Reintentar conexión',
+            ),
+          IconButton(
+            icon: const Icon(Icons.bug_report, color: wood_smoke),
+            onPressed: _testEndpoints,
+            tooltip: 'Probar endpoints',
+          ),
           IconButton(
             icon: const Icon(Icons.share, color: wood_smoke),
             onPressed: _exportReport,
@@ -127,6 +236,47 @@ class _SymptomReportPageState extends State<SymptomReportPage> {
               fg_color: wood_smoke,
               bg_color: athens_gray,
             ),
+
+            // Indicador de estado de conexión
+            if (!_isBackendConnected)
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange[300]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: Colors.orange[700]),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Modo sin conexión',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange[700],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'No se puede conectar con el servidor. Los reportes se generarán con datos locales.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             const SizedBox(height: 24),
 
             // Selector de rango de fechas
@@ -302,16 +452,49 @@ class _SymptomReportPageState extends State<SymptomReportPage> {
                               ],
                             ),
                           )
-                        : SelectableText(
-                            _reportText.isEmpty
-                                ? 'No hay datos para mostrar'
-                                : _reportText,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: wood_smoke,
-                              height: 1.5,
-                            ),
-                          ),
+                        : _error != null
+                            ? Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[50],
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.red[300]!),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(Icons.error_outline,
+                                            color: Colors.red[700]),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Error al generar reporte',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.red[700],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _error!,
+                                      style: TextStyle(color: Colors.red[600]),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : SelectableText(
+                                _reportText.isEmpty
+                                    ? 'No hay datos para mostrar'
+                                    : _reportText,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: wood_smoke,
+                                  height: 1.5,
+                                ),
+                              ),
                   ),
                 ],
               ),

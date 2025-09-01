@@ -562,4 +562,196 @@ class SymptomApiService {
       return {};
     }
   }
+
+  // ===== MÉTODOS DE REPORTES =====
+
+  // Generar reporte médico completo
+  Future<String> generateMedicalReport(
+      DateTime startDate, DateTime endDate) async {
+    try {
+      print(
+          'DEBUG generateMedicalReport → Generando reporte para período: $startDate - $endDate');
+
+      // Obtener datos del backend usando los endpoints HTTP
+      final symptomEntries =
+          await getSymptomEntriesByDateRange(startDate, endDate);
+      final foodEntries = await getAllFoodEntries();
+      final bowelEntries = await getAllBowelMovementEntries();
+
+      print('DEBUG generateMedicalReport → Datos obtenidos del backend:');
+      print('  - Síntomas: ${symptomEntries.length}');
+      print('  - Alimentos: ${foodEntries.length}');
+      print('  - Deposiciones: ${bowelEntries.length}');
+
+      // Filtrar alimentos y deposiciones por el rango de fechas
+      final foodEntriesInRange = foodEntries.where((entry) {
+        return entry.date
+                .isAfter(startDate.subtract(const Duration(days: 1))) &&
+            entry.date.isBefore(endDate.add(const Duration(days: 1)));
+      }).toList();
+
+      final bowelEntriesInRange = bowelEntries.where((entry) {
+        return entry.date
+                .isAfter(startDate.subtract(const Duration(days: 1))) &&
+            entry.date.isBefore(endDate.add(const Duration(days: 1)));
+      }).toList();
+
+      print('DEBUG generateMedicalReport → Datos filtrados por fecha:');
+      print('  - Alimentos en rango: ${foodEntriesInRange.length}');
+      print('  - Deposiciones en rango: ${bowelEntriesInRange.length}');
+
+      if (symptomEntries.isEmpty &&
+          foodEntriesInRange.isEmpty &&
+          bowelEntriesInRange.isEmpty) {
+        return 'No hay registros para el período seleccionado.';
+      }
+
+      String report = 'REPORTE MÉDICO COMPLETO\n';
+      report +=
+          'Período: ${startDate.day}/${startDate.month}/${startDate.year} - ${endDate.day}/${endDate.month}/${endDate.year}\n';
+      report +=
+          'Total de registros: ${symptomEntries.length + foodEntriesInRange.length + bowelEntriesInRange.length}\n\n';
+
+      // Sección de síntomas
+      if (symptomEntries.isNotEmpty) {
+        report += '=== SÍNTOMAS ===\n';
+        report += 'Total de síntomas registrados: ${symptomEntries.length}\n\n';
+
+        final Map<String, List<SymptomEntry>> entriesByDate = {};
+        for (final entry in symptomEntries) {
+          final dateKey =
+              '${entry.date.day}/${entry.date.month}/${entry.date.year}';
+          if (!entriesByDate.containsKey(dateKey)) {
+            entriesByDate[dateKey] = [];
+          }
+          entriesByDate[dateKey]!.add(entry);
+        }
+
+        final sortedDates = entriesByDate.keys.toList()..sort();
+        for (final date in sortedDates) {
+          report += 'Fecha: $date\n';
+          final dayEntries = entriesByDate[date]!;
+          for (final entry in dayEntries) {
+            report +=
+                '  • ${entry.symptomName} - Severidad: ${entry.severity} - Hora: ${entry.time}\n';
+            if (entry.notes != null && entry.notes!.isNotEmpty) {
+              report += '    Notas: ${entry.notes}\n';
+            }
+          }
+          report += '\n';
+        }
+      }
+
+      // Sección de alimentación
+      if (foodEntriesInRange.isNotEmpty) {
+        report += '=== ALIMENTACIÓN ===\n';
+        report +=
+            'Total de comidas registradas: ${foodEntriesInRange.length}\n\n';
+
+        final Map<String, List<FoodEntry>> entriesByDate = {};
+        for (final entry in foodEntriesInRange) {
+          final dateKey =
+              '${entry.date.day}/${entry.date.month}/${entry.date.year}';
+          if (!entriesByDate.containsKey(dateKey)) {
+            entriesByDate[dateKey] = [];
+          }
+          entriesByDate[dateKey]!.add(entry);
+        }
+
+        final sortedDates = entriesByDate.keys.toList()..sort();
+        for (final date in sortedDates) {
+          report += 'Fecha: $date\n';
+          final dayEntries = entriesByDate[date]!;
+          for (final entry in dayEntries) {
+            report +=
+                '  • ${entry.mealType}: ${entry.foodName} - Hora: ${entry.time}\n';
+            if (entry.causedDiscomfort == true) {
+              report += '    ⚠️ Causó malestar\n';
+              if (entry.discomfortNotes != null &&
+                  entry.discomfortNotes!.isNotEmpty) {
+                report += '    Notas: ${entry.discomfortNotes}\n';
+              }
+            }
+          }
+          report += '\n';
+        }
+      }
+
+      // Sección de deposiciones
+      if (bowelEntriesInRange.isNotEmpty) {
+        report += '=== DEPOSICIONES ===\n';
+        report +=
+            'Total de deposiciones registradas: ${bowelEntriesInRange.length}\n\n';
+
+        final Map<String, List<BowelMovementEntry>> entriesByDate = {};
+        for (final entry in bowelEntriesInRange) {
+          final dateKey =
+              '${entry.date.day}/${entry.date.month}/${entry.date.year}';
+          if (!entriesByDate.containsKey(dateKey)) {
+            entriesByDate[dateKey] = [];
+          }
+          entriesByDate[dateKey]!.add(entry);
+        }
+
+        final sortedDates = entriesByDate.keys.toList()..sort();
+        for (final date in sortedDates) {
+          report += 'Fecha: $date\n';
+          final dayEntries = entriesByDate[date]!;
+          for (final entry in dayEntries) {
+            report +=
+                '  • ${entry.consistency} - Color: ${entry.color} - Hora: ${entry.time}\n';
+            if (entry.wasPainful == true) report += '    ⚠️ Doloroso\n';
+            if (entry.hasBlood == true) report += '    ⚠️ Con sangre\n';
+            if (entry.hasMucus == true) report += '    ⚠️ Con moco\n';
+            if (entry.notes != null && entry.notes!.isNotEmpty) {
+              report += '    Notas: ${entry.notes}\n';
+            }
+          }
+          report += '\n';
+        }
+      }
+
+      print('DEBUG generateMedicalReport → Reporte generado exitosamente');
+      return report;
+    } catch (e) {
+      print('Error al generar reporte médico: $e');
+      return 'Error al generar el reporte: $e';
+    }
+  }
+
+  // Exportar datos como JSON
+  Future<String> exportDataAsJson() async {
+    try {
+      print('DEBUG exportDataAsJson → Exportando datos del backend...');
+
+      final symptomEntries = await getAllSymptomEntries();
+      final foodEntries = await getAllFoodEntries();
+      final bowelEntries = await getAllBowelMovementEntries();
+
+      final data = {
+        'exportDate': DateTime.now().toIso8601String(),
+        'symptomEntries': {
+          'total': symptomEntries.length,
+          'data': symptomEntries.map((e) => e.toJson()).toList(),
+        },
+        'foodEntries': {
+          'total': foodEntries.length,
+          'data': foodEntries.map((e) => e.toJson()).toList(),
+        },
+        'bowelMovementEntries': {
+          'total': bowelEntries.length,
+          'data': bowelEntries.map((e) => e.toJson()).toList(),
+        },
+      };
+
+      final jsonString = jsonEncode(data);
+      print(
+          'DEBUG exportDataAsJson → Datos exportados exitosamente: ${jsonString.length} caracteres');
+
+      return jsonString;
+    } catch (e) {
+      print('Error al exportar datos: $e');
+      return 'Error al exportar datos: $e';
+    }
+  }
 }

@@ -22,9 +22,18 @@ class MedicalAppointment {
   });
 
   factory MedicalAppointment.fromJson(Map<String, dynamic> json) {
+    // Validar que dateTime esté presente y sea válido
+    DateTime dateTime;
+    try {
+      dateTime = DateTime.parse(json['dateTime'] ?? '');
+    } catch (e) {
+      print('Error parsing dateTime: ${json['dateTime']}, using current time');
+      dateTime = DateTime.now();
+    }
+
     return MedicalAppointment(
       id: json['id'] ?? '',
-      dateTime: DateTime.parse(json['dateTime']),
+      dateTime: dateTime,
       doctor: json['doctor'] ?? '',
       specialty: json['specialty'] ?? '',
       status: json['status'] ?? 'Pendiente',
@@ -49,21 +58,38 @@ class MedicalAppointment {
 class AppointmentApiService {
   String _baseUrl = 'http://localhost:8080/api';
 
-  // Obtener todas las citas médicas
+  // Obtener todas las citas médicas (usando fecha del mes actual como en daily)
   Future<List<MedicalAppointment>> getAllAppointments() async {
     try {
+      // Usar fecha del mes actual como en el sistema daily
+      final currentDate = DateTime.now();
+      final formattedDate = DateFormat('yyyy-MM-dd').format(currentDate);
+
+      print(
+          'DEBUG getAllAppointments → Intentando obtener citas de: $_baseUrl/appointments?date=$formattedDate&userId=main');
+
       final response = await http.get(
-        Uri.parse('$_baseUrl/appointments?userId=main'),
+        Uri.parse('$_baseUrl/appointments?date=$formattedDate&userId=main'),
         headers: {'Content-Type': 'application/json'},
       );
 
+      print('DEBUG getAllAppointments → Status: ${response.statusCode}');
+      print('DEBUG getAllAppointments → Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
-        return body
+        print('DEBUG getAllAppointments → Citas obtenidas: ${body.length}');
+
+        final appointments = body
             .map((dynamic item) => MedicalAppointment.fromJson(item))
             .toList();
+
+        print(
+            'DEBUG getAllAppointments → Citas parseadas exitosamente: ${appointments.length}');
+        return appointments;
       } else {
-        throw Exception('Failed to load appointments: ${response.statusCode}');
+        throw Exception(
+            'Failed to load appointments: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error al obtener citas médicas: $e');
@@ -71,26 +97,72 @@ class AppointmentApiService {
     }
   }
 
-  // Obtener citas por fecha
+  // Obtener citas por fecha (formato daily)
   Future<List<MedicalAppointment>> getAppointmentsByDate(DateTime date) async {
     try {
       final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+      print(
+          'DEBUG getAppointmentsByDate → Obteniendo citas para fecha: $formattedDate');
+
       final response = await http.get(
-        Uri.parse('$_baseUrl/appointments?userId=main&date=$formattedDate'),
+        Uri.parse('$_baseUrl/appointments?date=$formattedDate&userId=main'),
         headers: {'Content-Type': 'application/json'},
       );
 
+      print('DEBUG getAppointmentsByDate → Status: ${response.statusCode}');
+      print('DEBUG getAppointmentsByDate → Response: ${response.body}');
+
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
-        return body
+        final appointments = body
             .map((dynamic item) => MedicalAppointment.fromJson(item))
             .toList();
+        print(
+            'DEBUG getAppointmentsByDate → Citas obtenidas: ${appointments.length}');
+        return appointments;
       } else {
         throw Exception(
-            'Failed to load appointments by date: ${response.statusCode}');
+            'Failed to load appointments by date: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error al obtener citas por fecha: $e');
+      return [];
+    }
+  }
+
+  // Obtener citas del mes (formato daily)
+  Future<List<MedicalAppointment>> getMonthlyAppointments(
+      DateTime month) async {
+    try {
+      // Usar el primer día del mes como en el sistema daily
+      final firstDayOfMonth = DateTime(month.year, month.month, 1);
+      final formattedDate = DateFormat('yyyy-MM-dd').format(firstDayOfMonth);
+
+      print(
+          'DEBUG getMonthlyAppointments → Obteniendo citas del mes: $formattedDate');
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/appointments?date=$formattedDate&userId=main'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('DEBUG getMonthlyAppointments → Status: ${response.statusCode}');
+      print('DEBUG getMonthlyAppointments → Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
+        final appointments = body
+            .map((dynamic item) => MedicalAppointment.fromJson(item))
+            .toList();
+        print(
+            'DEBUG getMonthlyAppointments → Citas obtenidas: ${appointments.length}');
+        return appointments;
+      } else {
+        throw Exception(
+            'Failed to load monthly appointments: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Error al obtener citas del mes: $e');
       return [];
     }
   }

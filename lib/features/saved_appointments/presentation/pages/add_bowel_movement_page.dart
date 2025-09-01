@@ -4,7 +4,7 @@ import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_button.da
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_text.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/custom_header.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_models.dart';
-import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_service.dart';
+import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_api_service.dart';
 import 'package:vibe_coding_tutorial_weather_app/utils/colors.dart';
 
 class AddBowelMovementPage extends StatefulWidget {
@@ -22,7 +22,7 @@ class AddBowelMovementPage extends StatefulWidget {
 }
 
 class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
-  final SymptomService _symptomService = SymptomService();
+  final SymptomApiService _symptomService = SymptomApiService();
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _notesController;
 
@@ -51,8 +51,25 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
 
   void _loadEditingData() {
     final entry = widget.editingEntry!;
+
+    // DEBUG: Log de los valores que vienen del backend
+    print('DEBUG _loadEditingData → Valores del backend:');
+    print('  - Color original: ${entry.color}');
+    print('  - Consistencia original: ${entry.consistency}');
+    print('  - HasBlood original: ${entry.hasBlood}');
+    print('  - HasMucus original: ${entry.hasMucus}');
+    print('  - WasPainful original: ${entry.wasPainful}');
+    print('  - PainLevel original: ${entry.painLevel}');
+    print('  - JSON completo: ${entry.toJson()}');
+
     _selectedConsistency = entry.consistency;
-    _selectedColor = entry.color;
+    _selectedColor = SymptomData.getStoolColorDisplayName(entry.color);
+
+    // DEBUG: Log de los valores convertidos
+    print('DEBUG _loadEditingData → Valores convertidos:');
+    print('  - Color convertido: $_selectedColor');
+    print('  - Consistencia: $_selectedConsistency');
+
     _time = entry.time;
     _notes = entry.notes ?? '';
     _notesController.text = _notes;
@@ -60,6 +77,13 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
     _hasMucus = entry.hasMucus ?? false;
     _wasPainful = entry.wasPainful ?? false;
     _painLevel = entry.painLevel ?? '';
+
+    // DEBUG: Log de los valores finales del estado
+    print('DEBUG _loadEditingData → Estado final:');
+    print('  - _hasBlood: $_hasBlood');
+    print('  - _hasMucus: $_hasMucus');
+    print('  - _wasPainful: $_wasPainful');
+    print('  - _painLevel: $_painLevel');
   }
 
   @override
@@ -205,6 +229,16 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
   }
 
   Widget _buildConsistencySelector() {
+    // Validar que la consistencia seleccionada esté en la lista disponible
+    String? validConsistency =
+        _selectedConsistency.isEmpty ? null : _selectedConsistency;
+    if (validConsistency != null &&
+        !SymptomData.bristolStoolScale
+            .any((stool) => stool['type'] == validConsistency)) {
+      validConsistency = 'Tipo 4'; // Valor por defecto seguro
+      _selectedConsistency = validConsistency;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -223,7 +257,7 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
             border: Border.all(color: wood_smoke, width: 2),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedConsistency.isEmpty ? null : _selectedConsistency,
+            value: validConsistency,
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding:
@@ -267,6 +301,13 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
   }
 
   Widget _buildColorSelector() {
+    // Validar que el color seleccionado esté en la lista de colores disponibles
+    String? validColor = _selectedColor.isEmpty ? null : _selectedColor;
+    if (validColor != null && !SymptomData.stoolColors.contains(validColor)) {
+      validColor = 'Marrón normal'; // Valor por defecto seguro
+      _selectedColor = validColor;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -285,7 +326,7 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
             border: Border.all(color: wood_smoke, width: 2),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedColor.isEmpty ? null : _selectedColor,
+            value: validColor,
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding:
@@ -582,7 +623,7 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
         date: widget.selectedDate,
         time: _time,
         consistency: _selectedConsistency,
-        color: _selectedColor,
+        color: SymptomData.getStoolColorBackendValue(_selectedColor),
         hasBlood: _hasBlood ? true : null,
         hasMucus: _hasMucus ? true : null,
         notes: _notes.isEmpty ? null : _notes,

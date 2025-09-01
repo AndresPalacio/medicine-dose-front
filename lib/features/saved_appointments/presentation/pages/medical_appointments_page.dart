@@ -4,22 +4,7 @@ import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_text.dart
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_button_round.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_button.dart';
 import 'package:vibe_coding_tutorial_weather_app/utils/colors.dart';
-
-class MedicalAppointment {
-  final int id;
-  final DateTime dateTime;
-  final String doctor;
-  final String specialty;
-  final String status; // 'Pendiente', 'Confirmada', 'Cancelada'
-
-  MedicalAppointment({
-    required this.id,
-    required this.dateTime,
-    required this.doctor,
-    required this.specialty,
-    required this.status,
-  });
-}
+import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/appointment_api_service.dart';
 
 class MedicalAppointmentsPage extends StatefulWidget {
   const MedicalAppointmentsPage({Key? key}) : super(key: key);
@@ -30,51 +15,45 @@ class MedicalAppointmentsPage extends StatefulWidget {
 }
 
 class _MedicalAppointmentsPageState extends State<MedicalAppointmentsPage> {
+  final AppointmentApiService _appointmentService = AppointmentApiService();
   late DateTime _selectedDate;
   late DateTime _currentMonth;
   List<MedicalAppointment> _appointments = [];
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
     _currentMonth = DateTime(_selectedDate.year, _selectedDate.month, 1);
-    _loadDummyAppointments();
+    _loadAppointments();
   }
 
-  void _loadDummyAppointments() {
-    // Generar citas dummy para el mes actual
-    final now = DateTime.now();
-    _appointments = [
-      MedicalAppointment(
-        id: 1,
-        dateTime: DateTime(now.year, now.month, 5, 10, 0),
-        doctor: 'Dra. Ana López',
-        specialty: 'Cardiología',
-        status: 'Pendiente',
-      ),
-      MedicalAppointment(
-        id: 2,
-        dateTime: DateTime(now.year, now.month, 12, 15, 30),
-        doctor: 'Dr. Juan Pérez',
-        specialty: 'Dermatología',
-        status: 'Confirmada',
-      ),
-      MedicalAppointment(
-        id: 3,
-        dateTime: DateTime(now.year, now.month, 22, 9, 0),
-        doctor: 'Dra. Marta Ruiz',
-        specialty: 'Oftalmología',
-        status: 'Cancelada',
-      ),
-      MedicalAppointment(
-        id: 4,
-        dateTime: DateTime(now.year, now.month, 22, 17, 0),
-        doctor: 'Dr. Carlos Gómez',
-        specialty: 'Pediatría',
-        status: 'Pendiente',
-      ),
-    ];
+  Future<void> _loadAppointments() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // Obtener citas del mes actual
+      final startDate = DateTime(_currentMonth.year, _currentMonth.month, 1);
+      final endDate = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
+
+      final appointments = await _appointmentService.getAppointmentsByDateRange(
+          startDate, endDate);
+
+      setState(() {
+        _appointments = appointments;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error al cargar las citas: $e';
+        _isLoading = false;
+      });
+    }
   }
 
   void _navigateToMonth(int months) {
@@ -82,7 +61,7 @@ class _MedicalAppointmentsPageState extends State<MedicalAppointmentsPage> {
       _currentMonth =
           DateTime(_currentMonth.year, _currentMonth.month + months, 1);
       _selectedDate = _currentMonth;
-      _loadDummyAppointments();
+      _loadAppointments();
     });
   }
 
@@ -642,11 +621,13 @@ class _MedicalAppointmentEditDialogState
     final dt =
         DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
     final newAppt = MedicalAppointment(
-      id: widget.appointment?.id ?? DateTime.now().millisecondsSinceEpoch,
+      id: widget.appointment?.id ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
       dateTime: dt,
       doctor: _doctorController.text,
       specialty: _specialtyController.text,
       status: _status,
+      userId: 'main',
     );
     widget.onSave(newAppt);
   }
@@ -915,6 +896,7 @@ class _ManageAppointmentsDayDialogState
               doctor: a.doctor,
               specialty: a.specialty,
               status: a.status,
+              userId: 'main',
             ))
         .toList();
   }
@@ -928,6 +910,7 @@ class _ManageAppointmentsDayDialogState
         doctor: appt.doctor,
         specialty: appt.specialty,
         status: newStatus,
+        userId: 'main',
       );
     });
   }

@@ -4,7 +4,7 @@ import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_button.da
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_text.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/custom_header.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_models.dart';
-import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_service.dart';
+import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_api_service.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/add_symptom_page.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/add_food_page.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/add_bowel_movement_page.dart';
@@ -22,7 +22,7 @@ class SymptomTrackingPage extends StatefulWidget {
 
 class _SymptomTrackingPageState extends State<SymptomTrackingPage>
     with SingleTickerProviderStateMixin {
-  final SymptomService _symptomService = SymptomService();
+  final SymptomApiService _symptomService = SymptomApiService();
   late DateTime _selectedDate;
   List<SymptomEntry> _todaySymptoms = [];
   List<FoodEntry> _todayFoods = [];
@@ -130,6 +130,13 @@ class _SymptomTrackingPageState extends State<SymptomTrackingPage>
     );
   }
 
+  Future<void> _testLoadData() async {
+    setState(() {
+      _selectedDate = DateTime.parse('2025-08-31');
+    });
+    await _loadTodayData();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -158,6 +165,11 @@ class _SymptomTrackingPageState extends State<SymptomTrackingPage>
             icon: const Icon(Icons.assessment, color: wood_smoke),
             onPressed: _generateReport,
             tooltip: 'Generar reporte',
+          ),
+          IconButton(
+            icon: const Icon(Icons.bug_report, color: wood_smoke),
+            onPressed: _testLoadData,
+            tooltip: 'Probar carga de datos',
           ),
         ],
         bottom: TabBar(
@@ -520,7 +532,8 @@ class _SymptomTrackingPageState extends State<SymptomTrackingPage>
                       alignment: Alignment.centerLeft,
                     ),
                     ContraText(
-                      text: '${entry.mealType} - ${entry.time}',
+                      text:
+                          '${SymptomData.getMealTypeDisplayName(entry.mealType)} - ${entry.time}',
                       size: 14,
                       color: trout,
                       alignment: Alignment.centerLeft,
@@ -557,25 +570,20 @@ class _SymptomTrackingPageState extends State<SymptomTrackingPage>
           ],
           if (entry.ingredients != null && entry.ingredients!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: entry.ingredients!
-                  .map((ingredient) => Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: athens_gray,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: ContraText(
-                          text: ingredient,
-                          size: 10,
-                          color: wood_smoke,
-                          alignment: Alignment.center,
-                        ),
-                      ))
-                  .toList(),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: athens_gray,
+                borderRadius: BorderRadius.circular(8),
+                border:
+                    Border.all(color: wood_smoke.withOpacity(0.3), width: 1),
+              ),
+              child: ContraText(
+                text: entry.ingredients!,
+                size: 12,
+                color: wood_smoke,
+                alignment: Alignment.centerLeft,
+              ),
             ),
           ],
           if (entry.discomfortNotes != null &&

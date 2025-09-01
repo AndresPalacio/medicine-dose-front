@@ -4,7 +4,7 @@ import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_button.da
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_text.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/custom_header.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_models.dart';
-import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_service.dart';
+import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_api_service.dart';
 import 'package:vibe_coding_tutorial_weather_app/utils/colors.dart';
 
 class AddSymptomPage extends StatefulWidget {
@@ -22,7 +22,7 @@ class AddSymptomPage extends StatefulWidget {
 }
 
 class _AddSymptomPageState extends State<AddSymptomPage> {
-  final SymptomService _symptomService = SymptomService();
+  final SymptomApiService _symptomService = SymptomApiService();
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _notesController;
 

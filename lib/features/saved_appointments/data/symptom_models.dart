@@ -42,14 +42,21 @@ class SymptomEntry {
   });
 
   factory SymptomEntry.fromJson(Map<String, dynamic> json) {
+    final symptomName =
+        json['symptomName'] ?? json['name'] ?? 'Síntoma desconocido';
+    final severity = json['severity'] ?? 'LEVE';
+    final notes = json['notes'];
+    final date = json['date'];
+    final time = json['time'] ?? '';
+
     return SymptomEntry(
-      id: json['id'],
-      symptomId: json['symptomId'],
-      symptomName: json['symptomName'],
-      severity: json['severity'],
-      notes: json['notes'],
-      date: DateTime.parse(json['date']),
-      time: json['time'],
+      id: json['id'] ?? '',
+      symptomId: json['symptomId'] ?? json['id'] ?? '',
+      symptomName: symptomName,
+      severity: severity,
+      notes: notes,
+      date: DateTime.parse(date),
+      time: time,
       relatedMedications: json['relatedMedications'] != null
           ? List<String>.from(json['relatedMedications'])
           : null,
@@ -80,7 +87,7 @@ class FoodEntry {
   final String? description;
   final DateTime date;
   final String time;
-  final List<String>? ingredients;
+  final String? ingredients;
   final String? portion;
   final bool? causedDiscomfort;
   final String? discomfortNotes;
@@ -101,17 +108,21 @@ class FoodEntry {
   });
 
   factory FoodEntry.fromJson(Map<String, dynamic> json) {
+    final foodName = json['foodName'] ?? json['name'] ?? 'Comida desconocida';
+    final mealType = json['mealType'] ?? json['category'] ?? '';
+    final description = json['description'] ?? json['notes'];
+    final date = json['date'];
+    final time = json['time'] ?? '';
+
     return FoodEntry(
-      id: json['id'],
-      mealType: json['mealType'],
-      foodName: json['foodName'],
-      description: json['description'],
-      date: DateTime.parse(json['date']),
-      time: json['time'],
-      ingredients: json['ingredients'] != null
-          ? List<String>.from(json['ingredients'])
-          : null,
-      portion: json['portion'],
+      id: json['id'] ?? '',
+      mealType: mealType,
+      foodName: foodName,
+      description: description,
+      date: DateTime.parse(date),
+      time: time,
+      ingredients: json['ingredients'],
+      portion: json['portion'] ?? json['quantity']?.toString(),
       causedDiscomfort: json['causedDiscomfort'],
       discomfortNotes: json['discomfortNotes'],
       additionalData: json['additionalData'],
@@ -165,16 +176,16 @@ class BowelMovementEntry {
 
   factory BowelMovementEntry.fromJson(Map<String, dynamic> json) {
     return BowelMovementEntry(
-      id: json['id'],
+      id: json['id'] ?? '',
       date: DateTime.parse(json['date']),
-      time: json['time'],
-      consistency: json['consistency'],
-      color: json['color'],
-      hasBlood: json['hasBlood'],
-      hasMucus: json['hasMucus'],
+      time: json['time'] ?? '',
+      consistency: json['consistency'] ?? json['type'] ?? '',
+      color: json['color'] ?? '',
+      hasBlood: json['blood'] ?? json['hasBlood'],
+      hasMucus: json['mucus'] ?? json['hasMucus'],
       notes: json['notes'],
-      wasPainful: json['wasPainful'],
-      painLevel: json['painLevel'],
+      wasPainful: json['pain'] != null,
+      painLevel: json['pain'],
       additionalData: json['additionalData'],
     );
   }
@@ -186,11 +197,10 @@ class BowelMovementEntry {
       'time': time,
       'consistency': consistency,
       'color': color,
-      'hasBlood': hasBlood,
-      'hasMucus': hasMucus,
+      'blood': hasBlood,
+      'mucus': hasMucus,
       'notes': notes,
-      'wasPainful': wasPainful,
-      'painLevel': painLevel,
+      'pain': wasPainful == true ? painLevel : null,
       'additionalData': additionalData,
     };
   }
@@ -441,11 +451,11 @@ class SymptomData {
 
   // Datos para tracking de alimentación
   static final List<String> mealTypes = [
-    'Desayuno',
-    'Almuerzo',
-    'Cena',
-    'Snack',
-    'Colación',
+    'DESAYUNO',
+    'ALMUERZO',
+    'CENA',
+    'SNACK',
+    'COLACIÓN',
   ];
 
   static final List<String> commonFoods = [
@@ -533,6 +543,79 @@ class SymptomData {
     'Blanco/Gris',
   ];
 
+  // Método helper para convertir el formato del backend a formato de visualización para colores
+  static String getStoolColorDisplayName(String backendValue) {
+    if (backendValue.isEmpty) return 'Marrón normal';
+
+    switch (backendValue.toUpperCase()) {
+      case 'MARRON':
+      case 'MARRÓN':
+      case 'MARRON_NORMAL':
+      case 'MARRÓN_NORMAL':
+        return 'Marrón normal';
+      case 'MARRON_CLARO':
+      case 'MARRÓN_CLARO':
+        return 'Marrón claro';
+      case 'MARRON_OSCURO':
+      case 'MARRÓN_OSCURO':
+        return 'Marrón oscuro';
+      case 'VERDE':
+        return 'Verde';
+      case 'AMARILLO':
+        return 'Amarillo';
+      case 'NEGRO':
+        return 'Negro';
+      case 'ROJO':
+        return 'Rojo';
+      case 'BLANCO':
+      case 'GRIS':
+      case 'BLANCO_GRIS':
+        return 'Blanco/Gris';
+      default:
+        // Si no coincide exactamente, intentar encontrar el más cercano
+        if (backendValue.toUpperCase().contains('MARRON') ||
+            backendValue.toUpperCase().contains('MARRÓN')) {
+          return 'Marrón normal';
+        }
+        return 'Marrón normal'; // Valor por defecto seguro
+    }
+  }
+
+  // Método helper para convertir el formato de visualización al formato del backend para colores
+  static String getStoolColorBackendValue(String displayName) {
+    if (displayName.isEmpty) return 'MARRON';
+
+    switch (displayName.toLowerCase()) {
+      case 'marrón normal':
+      case 'marron normal':
+        return 'MARRON';
+      case 'marrón claro':
+      case 'marron claro':
+        return 'MARRON_CLARO';
+      case 'marrón oscuro':
+      case 'marron oscuro':
+        return 'MARRON_OSCURO';
+      case 'verde':
+        return 'VERDE';
+      case 'amarillo':
+        return 'AMARILLO';
+      case 'negro':
+        return 'NEGRO';
+      case 'rojo':
+        return 'ROJO';
+      case 'blanco/gris':
+      case 'blanco gris':
+        return 'BLANCO_GRIS';
+      default:
+        // Si no coincide exactamente, intentar encontrar el más cercano
+        if (displayName.toLowerCase().contains('marrón') ||
+            displayName.toLowerCase().contains('marron')) {
+          return 'MARRON';
+        }
+        return 'MARRON'; // Valor por defecto seguro
+    }
+  }
+
   static List<Symptom> getSymptomsByCategory(String categoryId) {
     return symptoms.where((symptom) => symptom.category == categoryId).toList();
   }
@@ -550,6 +633,43 @@ class SymptomData {
       return categories.firstWhere((category) => category.id == id);
     } catch (e) {
       return null;
+    }
+  }
+
+  // Método helper para convertir el formato del backend a formato de visualización
+  static String getMealTypeDisplayName(String backendValue) {
+    switch (backendValue.toUpperCase()) {
+      case 'DESAYUNO':
+        return 'Desayuno';
+      case 'ALMUERZO':
+        return 'Almuerzo';
+      case 'CENA':
+        return 'Cena';
+      case 'SNACK':
+        return 'Snack';
+      case 'COLACIÓN':
+        return 'Colación';
+      default:
+        return backendValue;
+    }
+  }
+
+  // Método helper para convertir el formato de visualización al formato del backend
+  static String getMealTypeBackendValue(String displayName) {
+    switch (displayName.toLowerCase()) {
+      case 'desayuno':
+        return 'DESAYUNO';
+      case 'almuerzo':
+        return 'ALMUERZO';
+      case 'cena':
+        return 'CENA';
+      case 'snack':
+        return 'SNACK';
+      case 'colación':
+      case 'colacion':
+        return 'COLACIÓN';
+      default:
+        return displayName.toUpperCase();
     }
   }
 }

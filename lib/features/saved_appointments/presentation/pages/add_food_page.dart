@@ -4,7 +4,7 @@ import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_button.da
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_text.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/custom_header.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_models.dart';
-import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_service.dart';
+import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_api_service.dart';
 import 'package:vibe_coding_tutorial_weather_app/utils/colors.dart';
 
 class AddFoodPage extends StatefulWidget {
@@ -22,7 +22,7 @@ class AddFoodPage extends StatefulWidget {
 }
 
 class _AddFoodPageState extends State<AddFoodPage> {
-  final SymptomService _symptomService = SymptomService();
+  final SymptomApiService _symptomService = SymptomApiService();
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _descriptionController;
   late TextEditingController _portionController;
@@ -32,7 +32,7 @@ class _AddFoodPageState extends State<AddFoodPage> {
   String _description = '';
   String _time = '';
   String _portion = '';
-  List<String> _ingredients = [];
+  String _ingredients = '';
   bool _causedDiscomfort = false;
   String _discomfortNotes = '';
 
@@ -60,7 +60,7 @@ class _AddFoodPageState extends State<AddFoodPage> {
     _time = entry.time;
     _portion = entry.portion ?? '';
     _portionController.text = _portion;
-    _ingredients = entry.ingredients ?? [];
+    _ingredients = entry.ingredients ?? '';
     _causedDiscomfort = entry.causedDiscomfort ?? false;
     _discomfortNotes = entry.discomfortNotes ?? '';
   }
@@ -209,7 +209,7 @@ class _AddFoodPageState extends State<AddFoodPage> {
               return DropdownMenuItem(
                 value: mealType,
                 child: ContraText(
-                  text: mealType,
+                  text: SymptomData.getMealTypeDisplayName(mealType),
                   size: 16,
                   color: wood_smoke,
                   alignment: Alignment.centerLeft,
@@ -488,6 +488,13 @@ class _AddFoodPageState extends State<AddFoodPage> {
           color: wood_smoke,
           alignment: Alignment.centerLeft,
         ),
+        const SizedBox(height: 4),
+        const ContraText(
+          text: 'Describe los ingredientes y preparación de la comida',
+          size: 12,
+          color: trout,
+          alignment: Alignment.centerLeft,
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(16),
@@ -496,51 +503,25 @@ class _AddFoodPageState extends State<AddFoodPage> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: wood_smoke, width: 2),
           ),
-          child: Column(
-            children: [
-              TextField(
-                style: const TextStyle(color: wood_smoke),
-                decoration: const InputDecoration(
-                  hintText: 'Agregar ingrediente...',
-                  hintStyle: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: trout,
-                  ),
-                  border: InputBorder.none,
-                ),
-                onSubmitted: (value) {
-                  if (value.isNotEmpty && !_ingredients.contains(value)) {
-                    setState(() {
-                      _ingredients.add(value);
-                    });
-                  }
-                },
+          child: TextField(
+            style: const TextStyle(color: wood_smoke),
+            decoration: const InputDecoration(
+              hintText:
+                  'Ej: La pasta tiene queso con parmesano, salsa de tomate...',
+              hintStyle: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: trout,
               ),
-              if (_ingredients.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _ingredients
-                      .map((ingredient) => Chip(
-                            label: ContraText(
-                              text: ingredient,
-                              size: 12,
-                              color: wood_smoke,
-                              alignment: Alignment.center,
-                            ),
-                            deleteIcon: const Icon(Icons.close, size: 16),
-                            onDeleted: () {
-                              setState(() {
-                                _ingredients.remove(ingredient);
-                              });
-                            },
-                          ))
-                      .toList(),
-                ),
-              ],
-            ],
+              border: InputBorder.none,
+            ),
+            maxLines: 3,
+            onChanged: (value) {
+              setState(() {
+                _ingredients = value;
+              });
+            },
+            controller: TextEditingController(text: _ingredients),
           ),
         ),
       ],
@@ -926,6 +907,12 @@ class _AddFoodPageState extends State<AddFoodPage> {
     });
 
     try {
+      // Si no hay ingredientes, usar el nombre del alimento como ingrediente
+      String finalIngredients = _ingredients;
+      if (finalIngredients.isEmpty && _foodName.isNotEmpty) {
+        finalIngredients = _foodName;
+      }
+
       final entry = FoodEntry(
         id: widget.editingEntry?.id ??
             DateTime.now().millisecondsSinceEpoch.toString(),
@@ -934,7 +921,7 @@ class _AddFoodPageState extends State<AddFoodPage> {
         description: _description.isEmpty ? null : _description,
         date: widget.selectedDate,
         time: _time,
-        ingredients: _ingredients.isEmpty ? null : _ingredients,
+        ingredients: finalIngredients.isEmpty ? null : finalIngredients,
         portion: _portion.isEmpty ? null : _portion,
         causedDiscomfort: _causedDiscomfort ? true : null,
         discomfortNotes: _discomfortNotes.isEmpty ? null : _discomfortNotes,
@@ -949,6 +936,8 @@ class _AddFoodPageState extends State<AddFoodPage> {
       print('  - Date: ${entry.date}');
       print('  - Time: ${entry.time}');
       print('  - Ingredients: ${entry.ingredients}');
+      print('  - _ingredients state: $_ingredients');
+      print('  - finalIngredients: $finalIngredients');
       print('  - Portion: ${entry.portion}');
       print('  - CausedDiscomfort: ${entry.causedDiscomfort}');
       print('  - DiscomfortNotes: ${entry.discomfortNotes}');

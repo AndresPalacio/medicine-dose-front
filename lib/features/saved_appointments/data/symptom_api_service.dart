@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'symptom_models.dart';
 
 class SymptomApiService {
-  String _baseUrl = 'http://localhost:8080/api';
+  String _baseUrl = 'https://3lp396k7td.execute-api.us-east-1.amazonaws.com/prod/api';
 
   // ===== MÉTODOS PARA SÍNTOMAS =====
 

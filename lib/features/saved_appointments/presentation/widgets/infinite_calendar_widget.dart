@@ -205,6 +205,23 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
     final dateString = DateFormat('yyyy-MM-dd').format(date);
     final event = _eventsMap[dateString];
     final hasEvent = event != null;
+
+    // Determinar el color del indicador basado en el estado de las dosis
+    Color indicatorColor = mona_lisa; // Por defecto rosa (pendiente)
+    if (hasEvent) {
+      final allTaken = event.every((dose) => dose.taken);
+      final allPending = event.every((dose) => !dose.taken);
+
+      if (allTaken) {
+        indicatorColor = carribean_green; // Verde si todas están tomadas
+      } else if (allPending) {
+        indicatorColor = mona_lisa; // Rosa si todas están pendientes
+      } else {
+        indicatorColor =
+            Colors.orange; // Naranja si hay mezcla (algunas tomadas, otras no)
+      }
+    }
+
     return GestureDetector(
       onTap: () => _onDateSelected(date),
       child: Container(
@@ -236,8 +253,8 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
                 child: Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
-                    color: mona_lisa,
+                  decoration: BoxDecoration(
+                    color: indicatorColor,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -334,6 +351,10 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
   Widget _buildEventCard(MedicationDoseResponse dose) {
     final date = DateTime.parse(dose.date);
     final formatter = DateFormat('dd MMMM yyyy', 'es_ES');
+
+    // Determinar el color del indicador basado en el estado de la dosis
+    Color indicatorColor = dose.taken ? carribean_green : mona_lisa;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
       padding: const EdgeInsets.all(12),
@@ -357,8 +378,8 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
               Container(
                 width: 12,
                 height: 12,
-                decoration: const BoxDecoration(
-                  color: mona_lisa,
+                decoration: BoxDecoration(
+                  color: indicatorColor,
                   shape: BoxShape.circle,
                 ),
               ),

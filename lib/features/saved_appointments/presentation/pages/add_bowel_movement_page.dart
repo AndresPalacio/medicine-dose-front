@@ -24,6 +24,7 @@ class AddBowelMovementPage extends StatefulWidget {
 class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
   final SymptomService _symptomService = SymptomService();
   final _formKey = GlobalKey<FormState>();
+  late TextEditingController _notesController;
 
   String _selectedConsistency = '';
   String _selectedColor = '';
@@ -41,6 +42,7 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
   void initState() {
     super.initState();
     _time = DateFormat('HH:mm').format(DateTime.now());
+    _notesController = TextEditingController(text: _notes);
 
     if (widget.editingEntry != null) {
       _loadEditingData();
@@ -53,10 +55,17 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
     _selectedColor = entry.color;
     _time = entry.time;
     _notes = entry.notes ?? '';
+    _notesController.text = _notes;
     _hasBlood = entry.hasBlood ?? false;
     _hasMucus = entry.hasMucus ?? false;
     _wasPainful = entry.wasPainful ?? false;
     _painLevel = entry.painLevel ?? '';
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
   }
 
   @override
@@ -497,34 +506,33 @@ class _AddBowelMovementPageState extends State<AddBowelMovementPage> {
           alignment: Alignment.centerLeft,
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: TextEditingController(text: _notes),
-          onChanged: (value) {
-            setState(() {
-              _notes = value;
-            });
-          },
-          maxLines: 3,
-          style: const TextStyle(color: wood_smoke),
-          decoration: InputDecoration(
-            hintText: 'Observaciones adicionales...',
-            hintStyle: const TextStyle(
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: athens_gray,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: wood_smoke, width: 2),
+          ),
+          child: TextField(
+            controller: _notesController,
+            style: const TextStyle(
+              color: wood_smoke,
               fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: trout,
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            filled: true,
-            fillColor: athens_gray,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: wood_smoke, width: 2),
+            decoration: const InputDecoration(
+              hintText: 'Observaciones adicionales...',
+              hintStyle: TextStyle(
+                color: trout,
+                fontSize: 16,
+              ),
+              border: InputBorder.none,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: wood_smoke, width: 2),
-            ),
+            maxLines: 3,
+            onChanged: (value) {
+              setState(() {
+                _notes = value;
+              });
+            },
           ),
         ),
       ],

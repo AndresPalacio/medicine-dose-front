@@ -24,6 +24,8 @@ class AddFoodPage extends StatefulWidget {
 class _AddFoodPageState extends State<AddFoodPage> {
   final SymptomService _symptomService = SymptomService();
   final _formKey = GlobalKey<FormState>();
+  late TextEditingController _descriptionController;
+  late TextEditingController _portionController;
 
   String _selectedMealType = '';
   String _foodName = '';
@@ -41,6 +43,8 @@ class _AddFoodPageState extends State<AddFoodPage> {
   void initState() {
     super.initState();
     _time = DateFormat('HH:mm').format(DateTime.now());
+    _descriptionController = TextEditingController(text: _description);
+    _portionController = TextEditingController(text: _portion);
 
     if (widget.editingEntry != null) {
       _loadEditingData();
@@ -52,11 +56,20 @@ class _AddFoodPageState extends State<AddFoodPage> {
     _selectedMealType = entry.mealType;
     _foodName = entry.foodName;
     _description = entry.description ?? '';
+    _descriptionController.text = _description;
     _time = entry.time;
     _portion = entry.portion ?? '';
+    _portionController.text = _portion;
     _ingredients = entry.ingredients ?? [];
     _causedDiscomfort = entry.causedDiscomfort ?? false;
     _discomfortNotes = entry.discomfortNotes ?? '';
+  }
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    _portionController.dispose();
+    super.dispose();
   }
 
   @override
@@ -347,34 +360,33 @@ class _AddFoodPageState extends State<AddFoodPage> {
           alignment: Alignment.centerLeft,
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: TextEditingController(text: _description),
-          onChanged: (value) {
-            setState(() {
-              _description = value;
-            });
-          },
-          maxLines: 3,
-          style: const TextStyle(color: wood_smoke),
-          decoration: InputDecoration(
-            hintText: 'Describe la preparación, condimentos, etc...',
-            hintStyle: const TextStyle(
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: athens_gray,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: wood_smoke, width: 2),
+          ),
+          child: TextField(
+            controller: _descriptionController,
+            style: const TextStyle(
+              color: wood_smoke,
               fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: trout,
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            filled: true,
-            fillColor: athens_gray,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: wood_smoke, width: 2),
+            decoration: const InputDecoration(
+              hintText: 'Describe la preparación, condimentos, etc...',
+              hintStyle: TextStyle(
+                color: trout,
+                fontSize: 16,
+              ),
+              border: InputBorder.none,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: wood_smoke, width: 2),
-            ),
+            maxLines: 3,
+            onChanged: (value) {
+              setState(() {
+                _description = value;
+              });
+            },
           ),
         ),
       ],
@@ -433,33 +445,32 @@ class _AddFoodPageState extends State<AddFoodPage> {
           alignment: Alignment.centerLeft,
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: TextEditingController(text: _portion),
-          onChanged: (value) {
-            setState(() {
-              _portion = value;
-            });
-          },
-          style: const TextStyle(color: wood_smoke),
-          decoration: InputDecoration(
-            hintText: 'Ej: 1 taza, 200g, 1 porción...',
-            hintStyle: const TextStyle(
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: athens_gray,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: wood_smoke, width: 2),
+          ),
+          child: TextField(
+            controller: _portionController,
+            style: const TextStyle(
+              color: wood_smoke,
               fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: trout,
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            filled: true,
-            fillColor: athens_gray,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: wood_smoke, width: 2),
+            decoration: const InputDecoration(
+              hintText: 'Ej: 1 taza, 200g, 1 porción...',
+              hintStyle: TextStyle(
+                color: trout,
+                fontSize: 16,
+              ),
+              border: InputBorder.none,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: wood_smoke, width: 2),
-            ),
+            onChanged: (value) {
+              setState(() {
+                _portion = value;
+              });
+            },
           ),
         ),
       ],

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_button.dart';
-import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_input_field.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_text.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/custom_header.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_models.dart';
@@ -25,6 +24,7 @@ class AddSymptomPage extends StatefulWidget {
 class _AddSymptomPageState extends State<AddSymptomPage> {
   final SymptomService _symptomService = SymptomService();
   final _formKey = GlobalKey<FormState>();
+  late TextEditingController _notesController;
 
   List<Symptom> _selectedSymptoms = [];
   String _selectedSeverity = '';
@@ -40,6 +40,7 @@ class _AddSymptomPageState extends State<AddSymptomPage> {
   void initState() {
     super.initState();
     _time = DateFormat('HH:mm').format(DateTime.now());
+    _notesController = TextEditingController(text: _notes);
 
     if (widget.editingEntry != null) {
       _loadEditingData();
@@ -68,8 +69,15 @@ class _AddSymptomPageState extends State<AddSymptomPage> {
 
     _selectedSeverity = entry.severity;
     _notes = entry.notes ?? '';
+    _notesController.text = _notes;
     _time = entry.time;
     _relatedMedications = entry.relatedMedications ?? [];
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
   }
 
   @override
@@ -495,34 +503,33 @@ class _AddSymptomPageState extends State<AddSymptomPage> {
           alignment: Alignment.centerLeft,
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: TextEditingController(text: _notes),
-          onChanged: (value) {
-            setState(() {
-              _notes = value;
-            });
-          },
-          maxLines: 3,
-          style: const TextStyle(color: wood_smoke),
-          decoration: InputDecoration(
-            hintText: 'Describe cómo te sientes...',
-            hintStyle: const TextStyle(
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: athens_gray,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: wood_smoke, width: 2),
+          ),
+          child: TextField(
+            controller: _notesController,
+            style: const TextStyle(
+              color: wood_smoke,
               fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: trout,
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            filled: true,
-            fillColor: athens_gray,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: wood_smoke, width: 2),
+            decoration: const InputDecoration(
+              hintText: 'Describe cómo te sientes...',
+              hintStyle: TextStyle(
+                color: trout,
+                fontSize: 16,
+              ),
+              border: InputBorder.none,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: wood_smoke, width: 2),
-            ),
+            maxLines: 3,
+            onChanged: (value) {
+              setState(() {
+                _notes = value;
+              });
+            },
           ),
         ),
       ],

@@ -5,7 +5,7 @@ import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/dat
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/medication_model.dart';
 
 class MedicationApiService {
-  String _baseUrl = 'http://localhost:8080/api';
+  String _baseUrl = 'https://3lp396k7td.execute-api.us-east-1.amazonaws.com/prod/api';
 
   // Variables para la caché de medicamentos mensuales
   Map<String, List<MedicationDoseResponse>> _monthlyCache = {};

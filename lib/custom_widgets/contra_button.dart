@@ -9,7 +9,7 @@ class ContraButton extends StatelessWidget {
   final Color color;
   final Color? textColor;
   final String text;
-  final VoidCallback callback;
+  final VoidCallback? callback;
   final double? size;
   final double? height;
   final bool isPrefix;
@@ -36,7 +36,11 @@ class ContraButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: callback,
+      onTap: callback != null ? () async {
+        if (callback != null) {
+          callback!();
+        }
+      } : null,
       child: Container(
         width: size,
         height: height ?? 48,

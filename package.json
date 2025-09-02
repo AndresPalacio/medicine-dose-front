@@ -1,0 +1,38 @@
+{
+  "name": "medicine-dose-front",
+  "version": "1.0.0",
+  "description": "A Flutter weather application built using clean architecture principles. This is the starter project for the tutorial series.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AndresPalacio/medicine-dose-front.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AndresPalacio/medicine-dose-front/issues"
+  },
+  "homepage": "https://github.com/AndresPalacio/medicine-dose-front#readme",
+  "devDependencies": {
+    "@aws-amplify/backend": "^1.16.1",
+    "@aws-amplify/backend-cli": "^1.8.0",
+    "aws-cdk-lib": "^2.204.0",
+    "constructs": "^10.4.2",
+    "esbuild": "^0.25.9",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "aws-amplify": "^6.15.5"
+  }
+}

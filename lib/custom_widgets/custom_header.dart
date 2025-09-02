@@ -3,20 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_text.dart';
 
 class CustomHeader extends StatelessWidget {
-  String lineOneText;
-  String lineTwotext;
-  Color fg_color;
-  Color bg_color;
-  Color color;
-  bool isTwoLines;
+  final String lineOneText;
+  final String lineTwotext;
+  final Color fg_color;
+  final Color bg_color;
+  final Color color;
+  final bool isTwoLines;
 
-  CustomHeader(
-      {required this.lineOneText,
-      required this.lineTwotext,
-      required this.color,
-      this.isTwoLines = true,
-      required this.fg_color,
-      required this.bg_color});
+  const CustomHeader({
+    required this.lineOneText,
+    required this.lineTwotext,
+    required this.color,
+    this.isTwoLines = true,
+    required this.fg_color,
+    required this.bg_color,
+  });
 
   @override
   Widget build(BuildContext context) {

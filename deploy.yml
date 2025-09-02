@@ -1,0 +1,103 @@
+version: 1.0
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Installing Flutter SDK - Debug Version"
+        - |
+          export FLUTTER_VERSION=3.32.8
+          export PATH="$PATH:$(pwd)/flutter/bin"
+          
+          echo "Downloading Flutter $FLUTTER_VERSION..."
+          git clone https://github.com/flutter/flutter.git --depth 1 -b $FLUTTER_VERSION flutter
+          
+          echo "Configuring Flutter..."
+          export PATH="$PATH:$(pwd)/flutter/bin"
+          flutter config --no-analytics
+          flutter config --enable-web
+          
+          echo "Verifying Flutter setup..."
+          flutter --version
+          flutter doctor
+          
+          echo "Checking web files..."
+          ls -la web/
+          
+          echo "Getting dependencies..."
+          flutter pub get
+          
+          echo "Running build_runner..."
+          flutter pub run build_runner build --delete-conflicting-outputs
+          
+          echo "Flutter setup completed successfully"
+    build:
+      commands:
+        - |
+          export PATH="$PATH:$(pwd)/flutter/bin"
+          echo "=== BUILD PHASE START ==="
+          
+          echo "Current directory:"
+          pwd
+          ls -la
+          
+          echo "Flutter version check:"
+          flutter --version
+          
+          echo "Cleaning previous builds..."
+          flutter clean
+          
+          echo "Re-getting dependencies..."
+          flutter pub get
+          
+          echo "Starting Flutter build web..."
+          flutter build web \
+            --web-renderer canvaskit \
+            --dart-define=CLIENT_ID=$CLIENT_ID \
+            --dart-define=POOL_ID=$POOL_ID \
+            --tree-shake-icons \
+            --release \
+            --verbose
+          
+          echo "Build command finished. Checking results..."
+          
+          echo "Current directory contents:"
+          ls -la
+          
+          echo "Looking for build directory:"
+          find . -name "build" -type d 2>/dev/null || echo "No build directory found"
+          
+          echo "Looking for build/web:"
+          if [ -d "build/web" ]; then
+            echo "SUCCESS: build/web directory exists!"
+            echo "Contents of build/web:"
+            ls -la build/web/
+            echo "Total size of build/web:"
+            du -sh build/web/
+          else
+            echo "ERROR: build/web directory not found!"
+            echo "Searching for any web-related files:"
+            find . -name "*web*" -type f 2>/dev/null || echo "No web files found"
+            
+            echo "Trying alternative build without optimizations..."
+            flutter build web --release
+            
+            if [ -d "build/web" ]; then
+              echo "Alternative build succeeded!"
+              ls -la build/web/
+            else
+              echo "Alternative build also failed"
+              echo "Final directory structure:"
+              find . -maxdepth 3 -type d
+            fi
+          fi
+          
+          echo "=== BUILD PHASE END ==="
+          
+  artifacts:
+    baseDirectory: build/web
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - flutter/.pub-cache
+      - .dart_tool/**/*

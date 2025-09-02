@@ -155,7 +155,8 @@ class _AddMedicationPageState extends State<AddMedicationPage> {
                 ],
               ),
               const SizedBox(height: 16),
-              _buildDatePickerField(label: 'Fecha de Inicio', context: context),
+              _buildDatePickerField(
+                  label: 'Fecha de Inicio del Medicamento', context: context),
               const SizedBox(height: 24),
               const ContraText(
                 alignment: Alignment.centerLeft,

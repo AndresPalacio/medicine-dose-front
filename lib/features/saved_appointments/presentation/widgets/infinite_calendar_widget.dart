@@ -11,7 +11,7 @@ import 'package:vibe_coding_tutorial_weather_app/utils/colors.dart';
 class InfiniteCalendarWidget extends StatefulWidget {
   final DateTime? initialDate;
   final Function(DateTime)? onDateSelected;
-  final Function(CalendarEventResponse)? onEventSelected;
+  final Function(List<MedicationDoseResponse>)? onEventSelected;
 
   const InfiniteCalendarWidget({
     Key? key,
@@ -29,9 +29,9 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
   late DateTime _currentMonth;
   final MedicationApiService _apiService = MedicationApiService();
 
-  DataState<List<CalendarEventResponse>> _calendarState =
+  DataState<List<MedicationDoseResponse>> _calendarState =
       const DataState.loading();
-  Map<String, CalendarEventResponse> _eventsMap = {};
+  Map<String, List<MedicationDoseResponse>> _eventsMap = {};
 
   @override
   void initState() {
@@ -46,14 +46,22 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
       _calendarState = const DataState.loading();
     });
     try {
-      final events = await _apiService.getCalendarEvents();
-      final eventsMap = <String, CalendarEventResponse>{};
-      for (final event in events) {
-        eventsMap[event.start] = event;
+      // Usar getMonthlyDetail que tiene caché y es más eficiente
+      final monthlyDoses = await _apiService.getMonthlyDetail(_currentMonth);
+      final eventsMap = <String, List<MedicationDoseResponse>>{};
+
+      // Agrupar las dosis por fecha
+      for (final dose in monthlyDoses) {
+        if (eventsMap.containsKey(dose.date)) {
+          eventsMap[dose.date]!.add(dose);
+        } else {
+          eventsMap[dose.date] = [dose];
+        }
       }
+
       setState(() {
         _eventsMap = eventsMap;
-        _calendarState = DataState.success(value: events);
+        _calendarState = DataState.success(value: monthlyDoses);
       });
     } catch (e) {
       setState(() {
@@ -63,15 +71,23 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
     }
   }
 
+  /// Método público para refrescar los datos del calendario
+  /// Útil cuando se actualiza el estado de una dosis
+  Future<void> refreshCalendarEvents() async {
+    // Limpiar la caché para forzar una nueva carga
+    _apiService.clearCacheForDoseUpdate();
+    await _loadCalendarEvents();
+  }
+
   void _onDateSelected(DateTime date) {
     setState(() {
       _selectedDate = date;
     });
     widget.onDateSelected?.call(date);
     final dateString = DateFormat('yyyy-MM-dd').format(date);
-    final event = _eventsMap[dateString];
-    if (event != null) {
-      widget.onEventSelected?.call(event);
+    final doses = _eventsMap[dateString];
+    if (doses != null && doses.isNotEmpty) {
+      widget.onEventSelected?.call(doses);
     }
   }
 
@@ -85,6 +101,8 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
         _selectedDate = _currentMonth;
       }
     });
+    // Recargar los eventos del nuevo mes
+    _loadCalendarEvents();
   }
 
   Widget _buildMonthCalendar(DateTime month) {
@@ -187,6 +205,23 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
     final dateString = DateFormat('yyyy-MM-dd').format(date);
     final event = _eventsMap[dateString];
     final hasEvent = event != null;
+
+    // Determinar el color del indicador basado en el estado de las dosis
+    Color indicatorColor = mona_lisa; // Por defecto rosa (pendiente)
+    if (hasEvent) {
+      final allTaken = event.every((dose) => dose.taken);
+      final allPending = event.every((dose) => !dose.taken);
+
+      if (allTaken) {
+        indicatorColor = carribean_green; // Verde si todas están tomadas
+      } else if (allPending) {
+        indicatorColor = mona_lisa; // Rosa si todas están pendientes
+      } else {
+        indicatorColor =
+            Colors.orange; // Naranja si hay mezcla (algunas tomadas, otras no)
+      }
+    }
+
     return GestureDetector(
       onTap: () => _onDateSelected(date),
       child: Container(
@@ -218,8 +253,8 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
                 child: Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
-                    color: mona_lisa,
+                  decoration: BoxDecoration(
+                    color: indicatorColor,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -290,11 +325,11 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
         ),
       );
     }
-    // Filtrar eventos del mes actual
+    // Filtrar dosis del mes actual
     final monthString = DateFormat('yyyy-MM').format(_currentMonth);
-    final monthEvents =
-        events.where((e) => e.start.startsWith(monthString)).toList();
-    if (monthEvents.isEmpty) {
+    final monthDoses =
+        events.where((d) => d.date.startsWith(monthString)).toList();
+    if (monthDoses.isEmpty) {
       return Center(
         child: ContraText(
           alignment: Alignment.center,
@@ -305,17 +340,21 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
       );
     }
     return ListView.builder(
-      itemCount: monthEvents.length,
+      itemCount: monthDoses.length,
       itemBuilder: (context, index) {
-        final event = monthEvents[index];
-        return _buildEventCard(event);
+        final dose = monthDoses[index];
+        return _buildEventCard(dose);
       },
     );
   }
 
-  Widget _buildEventCard(CalendarEventResponse event) {
-    final date = DateTime.parse(event.start);
+  Widget _buildEventCard(MedicationDoseResponse dose) {
+    final date = DateTime.parse(dose.date);
     final formatter = DateFormat('dd MMMM yyyy', 'es_ES');
+
+    // Determinar el color del indicador basado en el estado de la dosis
+    Color indicatorColor = dose.taken ? carribean_green : mona_lisa;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
       padding: const EdgeInsets.all(12),
@@ -339,8 +378,8 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
               Container(
                 width: 12,
                 height: 12,
-                decoration: const BoxDecoration(
-                  color: mona_lisa,
+                decoration: BoxDecoration(
+                  color: indicatorColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -359,20 +398,18 @@ class _InfiniteCalendarWidgetState extends State<InfiniteCalendarWidget> {
           const SizedBox(height: 8),
           ContraText(
             alignment: Alignment.centerLeft,
-            text: event.title,
+            text: '${dose.medicationName} - ${dose.meal}',
             size: 16,
             weight: FontWeight.bold,
             color: carribean_green,
           ),
-          if (event.description.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            ContraText(
-              alignment: Alignment.centerLeft,
-              text: event.description,
-              size: 12,
-              color: trout,
-            ),
-          ],
+          const SizedBox(height: 4),
+          ContraText(
+            alignment: Alignment.centerLeft,
+            text: 'Tomar ${dose.quantity} pastilla(s)',
+            size: 12,
+            color: trout,
+          ),
         ],
       ),
     );

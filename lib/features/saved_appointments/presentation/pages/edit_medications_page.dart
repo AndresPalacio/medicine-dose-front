@@ -50,17 +50,18 @@ class _EditMedicationsPageState extends State<EditMedicationsPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmar borrado'),
+        backgroundColor: white,
+        title: const Text('Confirmar borrado', style: TextStyle(color: wood_smoke)),
         content:
-            const Text('¿Estás seguro de que deseas borrar este tratamiento?'),
+            const Text('¿Estás seguro de que deseas borrar este tratamiento?', style: TextStyle(color: wood_smoke)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: const Text('Cancelar', style: TextStyle(color: wood_smoke)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Borrar'),
+            child: const Text('Borrar', style: TextStyle(color: carribean_green, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -199,7 +200,7 @@ class _EditMedicationsPageState extends State<EditMedicationsPage> {
                                     ),
                                     ContraText(
                                       text:
-                                          'Inicio: ${med.startDate.toLocal().toString().split(' ')[0]}',
+                                          'Inicio del medicamento: ${med.startDate.toLocal().toString().split(' ')[0]}',
                                       size: 16,
                                       color: trout,
                                       alignment: Alignment.centerLeft,
@@ -268,7 +269,7 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
     _mealTiming = widget.medication.mealTiming;
     _timeUnit = widget.medication.timeUnit ?? 'MINUTOS';
     _timeBeforeAfterController = TextEditingController(
-        text: (widget.medication.timeBeforeAfter ?? 0).toString());
+        text: _getTimeBeforeAfterText(widget.medication.timeBeforeAfter));
     _startDate = widget.medication.startDate;
     _quantityPerDoseController = TextEditingController(
         text: widget.medication.quantityPerDose?.toString() ?? '');
@@ -277,6 +278,22 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
     _desayuno = meals.contains('DESAYUNO');
     _almuerzo = meals.contains('ALMUERZO');
     _cena = meals.contains('CENA');
+  }
+
+  String _getTimeBeforeAfterText(dynamic timeBeforeAfter) {
+    if (timeBeforeAfter == null) return '0';
+    if (timeBeforeAfter is int) return timeBeforeAfter.toString();
+    if (timeBeforeAfter is String) {
+      // Si es "INDIFERENTE" o similar, devolver 0
+      if (timeBeforeAfter == 'INDIFERENTE' ||
+          timeBeforeAfter == 'EN_AYUNAS' ||
+          timeBeforeAfter == 'CON_COMIDA') {
+        return '0';
+      }
+      // Intentar parsear como número
+      return int.tryParse(timeBeforeAfter)?.toString() ?? '0';
+    }
+    return '0';
   }
 
   @override
@@ -468,6 +485,9 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
                             },
                             decoration: const InputDecoration(
                                 border: OutlineInputBorder()),
+                            dropdownColor: white,
+                            icon: const Icon(Icons.arrow_drop_down, color: wood_smoke),
+                            style: const TextStyle(color: wood_smoke),
                           ),
                         ],
                       ),
@@ -476,7 +496,7 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
                 ),
                 const SizedBox(height: 16),
                 ContraText(
-                  text: 'Fecha de inicio',
+                  text: 'Fecha de inicio del medicamento',
                   size: 18,
                   color: wood_smoke,
                   alignment: Alignment.centerLeft,
@@ -587,6 +607,9 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
                             },
                             decoration: const InputDecoration(
                                 border: OutlineInputBorder()),
+                            dropdownColor: white,
+                            icon: const Icon(Icons.arrow_drop_down, color: wood_smoke),
+                            style: const TextStyle(color: wood_smoke),
                           ),
                         ],
                       ),
@@ -647,6 +670,9 @@ class _EditMedicationFormPageState extends State<EditMedicationFormPage> {
                                 _timeUnit = value!;
                               });
                             },
+                            dropdownColor: white,
+                            icon: const Icon(Icons.arrow_drop_down, color: wood_smoke),
+                            style: const TextStyle(color: wood_smoke),
                             decoration: const InputDecoration(
                                 border: OutlineInputBorder()),
                           ),

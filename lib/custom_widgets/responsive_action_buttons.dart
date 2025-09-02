@@ -5,12 +5,14 @@ class ResponsiveActionButtons extends StatelessWidget {
   final VoidCallback onCitasPressed;
   final VoidCallback onCalendarioPressed;
   final VoidCallback onCambiarMesPressed;
+  final VoidCallback? onSintomasPressed;
 
   const ResponsiveActionButtons({
     Key? key,
     required this.onCitasPressed,
     required this.onCalendarioPressed,
     required this.onCambiarMesPressed,
+    this.onSintomasPressed,
   }) : super(key: key);
 
   @override
@@ -49,14 +51,31 @@ class ResponsiveActionButtons extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          _buildResponsiveButton(
+          _buildButtonRow(
             context,
-            'Cambiar mes',
-            white,
-            wood_smoke,
-            wood_smoke,
-            onCambiarMesPressed,
-            isFullWidth: true,
+            [
+              if (onSintomasPressed != null) ...[
+                _buildResponsiveButton(
+                  context,
+                  'Síntomas',
+                  Colors.orange,
+                  Colors.orange,
+                  white,
+                  onSintomasPressed!,
+                  isSmallScreen: true,
+                ),
+                const SizedBox(width: 8),
+              ],
+              _buildResponsiveButton(
+                context,
+                'Cambiar mes',
+                white,
+                wood_smoke,
+                wood_smoke,
+                onCambiarMesPressed,
+                isSmallScreen: true,
+              ),
+            ],
           ),
         ],
       );
@@ -84,6 +103,16 @@ class ResponsiveActionButtons extends StatelessWidget {
             onCalendarioPressed,
             isCompact: true,
           ),
+          if (onSintomasPressed != null)
+            _buildResponsiveButton(
+              context,
+              'Síntomas',
+              Colors.orange,
+              Colors.orange,
+              white,
+              onSintomasPressed!,
+              isCompact: true,
+            ),
           _buildResponsiveButton(
             context,
             'Cambiar mes',
@@ -120,6 +149,19 @@ class ResponsiveActionButtons extends StatelessWidget {
               onCalendarioPressed,
             ),
           ),
+          if (onSintomasPressed != null) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildResponsiveButton(
+                context,
+                'Síntomas',
+                Colors.orange,
+                Colors.orange,
+                white,
+                onSintomasPressed!,
+              ),
+            ),
+          ],
           const SizedBox(width: 8),
           Expanded(
             child: _buildResponsiveButton(

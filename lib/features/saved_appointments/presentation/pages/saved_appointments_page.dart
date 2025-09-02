@@ -10,6 +10,7 @@ import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/pre
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/calendar_page.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/medical_appointments_page.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/edit_medications_page.dart';
+import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/pages/symptom_tracking_page.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/widgets/medication_card_widget.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/responsive_action_buttons.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/responsive_date_selector.dart';
@@ -35,6 +36,10 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
 
   Map<String, MedicationResponse> _medicationsMap = {};
   List<MedicationDoseResponse> _dailyDoses = [];
+
+  // Variables para la caché optimizada
+  List<MedicationDoseResponse> _monthlyData = [];
+  DateTime? _currentCachedMonth;
 
   @override
   void initState() {
@@ -78,8 +83,11 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
       await _fetchDailyDoses(_selectedDate);
     } catch (e) {
       setState(() {
-        _error = "Error al cargar los datos iniciales.";
+        _error = "Error al cargar los datos iniciales: $e";
       });
+      // DEBUG
+      // ignore: avoid_print
+      print('DEBUG _fetchInitialData error: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -93,17 +101,45 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
       _error = null;
     });
     try {
-      final doses = await _apiService.getDailyDetail(date);
+      // Verificar si necesitamos cargar datos del mes
+      final currentMonth = DateTime(date.year, date.month, 1);
+      if (_currentCachedMonth == null ||
+          _currentCachedMonth!.year != currentMonth.year ||
+          _currentCachedMonth!.month != currentMonth.month) {
+        // Cargar datos del mes completo (con caché del servicio)
+        _monthlyData = await _apiService.getMonthlyDetail(date);
+        _currentCachedMonth = currentMonth;
+
+        // DEBUG
+        // ignore: avoid_print
+        print(
+            'DEBUG _fetchDailyDoses → Loaded monthly data for ${currentMonth.year}-${currentMonth.month} (${_monthlyData.length} items)');
+      }
+
+      // Filtrar datos del día específico
+      final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+      final dailyDoses = _monthlyData.where((medication) {
+        return medication.date == formattedDate;
+      }).toList();
+
       if (mounted) {
         setState(() {
-          _dailyDoses = doses;
+          _dailyDoses = dailyDoses;
         });
       }
+
+      // DEBUG
+      // ignore: avoid_print
+      print(
+          'DEBUG _fetchDailyDoses → Filtered ${dailyDoses.length} items for date: $formattedDate');
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = "Error al cargar las tomas del día.";
+          _error = "Error al cargar las tomas del día: $e";
         });
+        // DEBUG
+        // ignore: avoid_print
+        print('DEBUG _fetchDailyDoses error: $e');
       }
     } finally {
       if (mounted) {
@@ -170,6 +206,46 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
       _scrollToDate(date, jump: true);
       _updateVisibleDateRange();
     });
+  }
+
+  /// Actualiza la caché local cuando se marca una dosis como tomada
+  void _updateLocalCache(String doseId, bool isTaken) {
+    if (_monthlyData.isNotEmpty) {
+      // Buscar la dosis en la caché local y actualizarla
+      final doseIndex = _monthlyData.indexWhere((dose) => dose.id == doseId);
+      if (doseIndex != -1) {
+        // Crear una nueva instancia con el estado actualizado
+        final updatedDose = MedicationDoseResponse(
+          id: _monthlyData[doseIndex].id,
+          medicationId: _monthlyData[doseIndex].medicationId,
+          medicationName: _monthlyData[doseIndex].medicationName,
+          date: _monthlyData[doseIndex].date,
+          meal: _monthlyData[doseIndex].meal,
+          quantity: _monthlyData[doseIndex].quantity,
+          taken: isTaken,
+          mealTiming: _monthlyData[doseIndex].mealTiming,
+          timeBeforeAfter: _monthlyData[doseIndex].timeBeforeAfter,
+          timeUnit: _monthlyData[doseIndex].timeUnit,
+        );
+
+        // Actualizar la dosis en la caché
+        _monthlyData[doseIndex] = updatedDose;
+
+        // DEBUG
+        // ignore: avoid_print
+        print(
+            'DEBUG _updateLocalCache → Updated dose $doseId to taken=$isTaken');
+      }
+    }
+  }
+
+  /// Limpia la caché local cuando se modifican los medicamentos
+  void _clearLocalCache() {
+    _monthlyData.clear();
+    _currentCachedMonth = null;
+    // DEBUG
+    // ignore: avoid_print
+    print('DEBUG _clearLocalCache → Local cache cleared');
   }
 
   void _scrollToDate(DateTime date, {bool jump = false}) {
@@ -275,6 +351,14 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const CalendarPage(),
+                  ),
+                );
+              },
+              onSintomasPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SymptomTrackingPage(),
                   ),
                 );
               },
@@ -427,6 +511,8 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
                     try {
                       await _apiService.markDoseAsTaken(
                           dose.id, !originalState);
+                      // Actualizar caché local después de marcar dosis
+                      _updateLocalCache(dose.id, !originalState);
                     } catch (e) {
                       // DEBUG
                       // ignore: avoid_print
@@ -483,6 +569,8 @@ class _SavedAppointmentsPageState extends State<SavedAppointmentsPage> {
                     try {
                       await _apiService.markDoseAsTaken(
                           dose.id, !originalState);
+                      // Actualizar caché local después de marcar dosis
+                      _updateLocalCache(dose.id, !originalState);
                     } catch (e) {
                       // DEBUG
                       // ignore: avoid_print

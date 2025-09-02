@@ -103,9 +103,8 @@ class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
     if (_searchQuery.isNotEmpty) {
       filtered = filtered
           .where((entry) =>
-              entry.symptomName
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase()) ||
+              entry.symptomNames.any((name) =>
+                  name.toLowerCase().contains(_searchQuery.toLowerCase())) ||
               (entry.notes
                       ?.toLowerCase()
                       .contains(_searchQuery.toLowerCase()) ??
@@ -482,7 +481,7 @@ class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
         title:
             const Text('Eliminar Síntoma', style: TextStyle(color: wood_smoke)),
         content: Text(
-            '¿Estás seguro de que quieres eliminar el registro de "${entry.symptomName}"?',
+            '¿Estás seguro de que quieres eliminar el registro de "${entry.symptomNames.isNotEmpty ? entry.symptomNames.first : 'síntoma'}"?',
             style: const TextStyle(color: wood_smoke)),
         actions: [
           TextButton(

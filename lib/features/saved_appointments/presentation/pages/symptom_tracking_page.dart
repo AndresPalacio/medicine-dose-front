@@ -844,7 +844,7 @@ class _SymptomTrackingPageState extends State<SymptomTrackingPage>
         title:
             const Text('Eliminar Síntoma', style: TextStyle(color: wood_smoke)),
         content: Text(
-            '¿Estás seguro de que quieres eliminar el registro de "${entry.symptomName}"?',
+            '¿Estás seguro de que quieres eliminar el registro de "${entry.symptomNames.isNotEmpty ? entry.symptomNames.first : 'síntoma'}"?',
             style: const TextStyle(color: wood_smoke)),
         actions: [
           TextButton(

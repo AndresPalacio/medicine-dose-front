@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'symptom_models.dart';
 
 class SymptomApiService {
-  String _baseUrl = 'http://localhost:8080/api';
+  String _baseUrl = 'https://3lp396k7td.execute-api.us-east-1.amazonaws.com/prod/api';
 
   // ===== MÉTODOS PARA SÍNTOMAS =====
 
@@ -110,20 +110,20 @@ class SymptomApiService {
   // Agregar una nueva entrada de síntoma
   Future<bool> addSymptomEntry(SymptomEntry entry) async {
     try {
-      // El backend espera solo el nombre del síntoma, no el ID
-      // El backend generará automáticamente el symptomId
+      // El backend ahora espera symptoms (objetos con id y categoría) en lugar de symptomIds
+      // y relatedMedications como string
       final body = {
-        'symptomName': entry.symptomName,
+        'symptoms': entry.symptoms,
         'severity': entry.severity,
         'notes': entry.notes,
         'date': DateFormat('yyyy-MM-dd').format(entry.date),
         'time': entry.time,
-        'relatedMedications': entry.relatedMedications ?? [],
+        'relatedMedications': entry.relatedMedications ?? '',
         'userId': 'main',
       };
 
       print(
-          'DEBUG addSymptomEntry → Enviando solo symptomName (sin symptomId): $body');
+          'DEBUG addSymptomEntry → Enviando symptoms (objetos con id y categoría) y relatedMedications como string: $body');
 
       final response = await http.post(
         Uri.parse('$_baseUrl/symptoms'),
@@ -152,20 +152,20 @@ class SymptomApiService {
   // Actualizar una entrada de síntoma existente
   Future<bool> updateSymptomEntry(SymptomEntry updatedEntry) async {
     try {
-      // El backend espera solo el nombre del síntoma, no el ID
-      // El backend ya tiene el symptomId almacenado
+      // El backend ahora espera symptoms (objetos con id y categoría) en lugar de symptomIds
+      // y relatedMedications como string
       final body = {
-        'symptomName': updatedEntry.symptomName,
+        'symptoms': updatedEntry.symptoms,
         'severity': updatedEntry.severity,
         'notes': updatedEntry.notes,
         'date': DateFormat('yyyy-MM-dd').format(updatedEntry.date),
         'time': updatedEntry.time,
-        'relatedMedications': updatedEntry.relatedMedications ?? [],
+        'relatedMedications': updatedEntry.relatedMedications ?? '',
         'userId': 'main',
       };
 
       print(
-          'DEBUG updateSymptomEntry → Enviando solo symptomName (sin symptomId): $body');
+          'DEBUG updateSymptomEntry → Enviando symptoms (objetos con id y categoría) y relatedMedications como string: $body');
 
       final response = await http.put(
         Uri.parse('$_baseUrl/symptoms/${updatedEntry.id}'),
@@ -900,7 +900,7 @@ class SymptomApiService {
           final dayEntries = entriesByDate[date]!;
           for (final entry in dayEntries) {
             report +=
-                '  • ${entry.symptomName} - Severidad: ${entry.severity} - Hora: ${entry.time}\n';
+                '  • ${entry.symptomNames.isNotEmpty ? entry.symptomNames.first : 'Sin síntomas'} - Severidad: ${entry.severity} - Hora: ${entry.time}\n';
             if (entry.notes != null && entry.notes!.isNotEmpty) {
               report += '    Notas: ${entry.notes}\n';
             }

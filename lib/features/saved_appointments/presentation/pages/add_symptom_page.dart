@@ -25,12 +25,13 @@ class _AddSymptomPageState extends State<AddSymptomPage> {
   final SymptomApiService _symptomService = SymptomApiService();
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _notesController;
+  late TextEditingController _medicationsController;
 
   List<Symptom> _selectedSymptoms = [];
   String _selectedSeverity = '';
   String _notes = '';
   String _time = '';
-  List<String> _relatedMedications = [];
+  String _relatedMedications = '';
   String _otherSymptom = '';
 
   bool _isLoading = false;
@@ -41,6 +42,7 @@ class _AddSymptomPageState extends State<AddSymptomPage> {
     super.initState();
     _time = DateFormat('HH:mm').format(DateTime.now());
     _notesController = TextEditingController(text: _notes);
+    _medicationsController = TextEditingController(text: _relatedMedications);
 
     if (widget.editingEntry != null) {
       _loadEditingData();
@@ -50,33 +52,28 @@ class _AddSymptomPageState extends State<AddSymptomPage> {
   void _loadEditingData() {
     final entry = widget.editingEntry!;
 
-    // Cargar múltiples síntomas si están separados por comas
-    if (entry.symptomId.contains(',')) {
-      final symptomIds =
-          entry.symptomId.split(', ').map((id) => id.trim()).toList();
-      _selectedSymptoms = symptomIds
-          .map((id) => SymptomData.getSymptomById(id))
-          .where((symptom) => symptom != null)
-          .cast<Symptom>()
-          .toList();
-    } else {
-      // Cargar un solo síntoma
-      final symptom = SymptomData.getSymptomById(entry.symptomId);
-      if (symptom != null) {
-        _selectedSymptoms = [symptom];
-      }
-    }
+    // Cargar síntomas usando la nueva estructura de symptoms
+    _selectedSymptoms = entry.symptoms
+        .map((symptomData) =>
+            SymptomData.getSymptomById(symptomData['id'] as int))
+        .where((symptom) => symptom != null)
+        .cast<Symptom>()
+        .toList();
 
     _selectedSeverity = entry.severity;
     _notes = entry.notes ?? '';
     _notesController.text = _notes;
     _time = entry.time;
-    _relatedMedications = entry.relatedMedications ?? [];
+
+    // relatedMedications ahora es un string, no una lista
+    _relatedMedications = entry.relatedMedications ?? '';
+    _medicationsController.text = _relatedMedications;
   }
 
   @override
   void dispose() {
     _notesController.dispose();
+    _medicationsController.dispose();
     super.dispose();
   }
 
@@ -357,7 +354,7 @@ class _AddSymptomPageState extends State<AddSymptomPage> {
                           setState(() {
                             // Crear un síntoma personalizado
                             final customSymptom = Symptom(
-                              id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+                              id: DateTime.now().millisecondsSinceEpoch,
                               name: _otherSymptom,
                               description: 'Síntoma personalizado',
                               category: 'personalizado',
@@ -555,54 +552,27 @@ class _AddSymptomPageState extends State<AddSymptomPage> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: wood_smoke, width: 2),
           ),
-          child: Column(
-            children: [
-              TextField(
-                style: const TextStyle(
-                  color: wood_smoke,
-                  fontSize: 16,
-                ),
-                decoration: const InputDecoration(
-                  hintText: 'Agregar medicamento...',
-                  hintStyle: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 16,
-                  ),
-                  border: InputBorder.none,
-                ),
-                onSubmitted: (value) {
-                  if (value.isNotEmpty &&
-                      !_relatedMedications.contains(value)) {
-                    setState(() {
-                      _relatedMedications.add(value);
-                    });
-                  }
-                },
+          child: TextField(
+            controller: _medicationsController,
+            style: const TextStyle(
+              color: wood_smoke,
+              fontSize: 16,
+            ),
+            decoration: const InputDecoration(
+              hintText: 'Escribir medicamentos o tratamientos...',
+              hintStyle: TextStyle(
+                color: Colors.grey,
+                fontSize: 16,
               ),
-              if (_relatedMedications.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _relatedMedications
-                      .map((med) => Chip(
-                            label: ContraText(
-                              text: med,
-                              size: 12,
-                              color: wood_smoke,
-                              alignment: Alignment.center,
-                            ),
-                            deleteIcon: const Icon(Icons.close, size: 16),
-                            onDeleted: () {
-                              setState(() {
-                                _relatedMedications.remove(med);
-                              });
-                            },
-                          ))
-                      .toList(),
-                ),
-              ],
-            ],
+              border: InputBorder.none,
+            ),
+            maxLines: 3,
+            textAlign: TextAlign.left,
+            onChanged: (value) {
+              setState(() {
+                _relatedMedications = value;
+              });
+            },
           ),
         ),
       ],
@@ -656,28 +626,38 @@ class _AddSymptomPageState extends State<AddSymptomPage> {
     });
 
     try {
-      // Crear un solo registro con todos los síntomas agrupados
-      final symptomNames = _selectedSymptoms.map((s) => s.name).join(', ');
-      final symptomIds = _selectedSymptoms.map((s) => s.id).join(', ');
+      // Crear arrays de síntomas con la nueva estructura
+      final symptomNames = _selectedSymptoms.map((s) => s.name).toList();
+      final symptoms = _selectedSymptoms
+          .map((s) => {
+                'id': s.id,
+                'category': s.category,
+                'name': s.name,
+              })
+          .toList();
+
+      // relatedMedications ya es un string, solo verificar si está vacío
+      final medicationsString = _relatedMedications.trim().isEmpty
+          ? null
+          : _relatedMedications.trim();
 
       final entry = SymptomEntry(
         id: widget.editingEntry?.id ??
             DateTime.now().millisecondsSinceEpoch.toString(),
-        symptomId: symptomIds,
-        symptomName: symptomNames,
+        symptoms: symptoms,
+        symptomNames: symptomNames,
         severity: _selectedSeverity,
         notes: _notes.isEmpty ? null : _notes,
         date: widget.selectedDate,
         time: _time,
-        relatedMedications:
-            _relatedMedications.isEmpty ? null : _relatedMedications,
+        relatedMedications: medicationsString,
       );
 
       // DEBUG: Log del modelo antes de guardar
       print('DEBUG _saveSymptom → Modelo a guardar:');
       print('  - ID: ${entry.id}');
-      print('  - SymptomId: ${entry.symptomId}');
-      print('  - SymptomName: ${entry.symptomName}');
+      print('  - Symptoms: ${entry.symptoms}');
+      print('  - SymptomNames: ${entry.symptomNames}');
       print('  - Severity: ${entry.severity}');
       print('  - Notes: ${entry.notes}');
       print('  - Date: ${entry.date}');

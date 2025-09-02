@@ -55,7 +55,16 @@ class _AddFoodPageState extends State<AddFoodPage> {
 
   void _loadEditingData() {
     final entry = widget.editingEntry!;
-    _selectedMealType = entry.mealType;
+
+    // Validar que el mealType esté en la lista de tipos válidos
+    if (SymptomData.mealTypes.contains(entry.mealType)) {
+      _selectedMealType = entry.mealType;
+    } else {
+      // Si no es válido, usar el primer tipo disponible o vacío
+      _selectedMealType =
+          SymptomData.mealTypes.isNotEmpty ? SymptomData.mealTypes.first : '';
+    }
+
     _foodName = entry.foodName;
     _description = entry.description ?? '';
     _descriptionController.text = _description;
@@ -194,7 +203,10 @@ class _AddFoodPageState extends State<AddFoodPage> {
             border: Border.all(color: wood_smoke, width: 2),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedMealType.isEmpty ? null : _selectedMealType,
+            value: _selectedMealType.isEmpty ||
+                    !SymptomData.mealTypes.contains(_selectedMealType)
+                ? null
+                : _selectedMealType,
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding:

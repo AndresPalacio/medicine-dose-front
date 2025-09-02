@@ -404,16 +404,18 @@ class SymptomService {
       final Map<String, Map<String, int>> severityDistribution = {};
 
       for (final entry in entries) {
-        // Contar frecuencia de síntomas
-        symptomFrequency[entry.symptomName] =
-            (symptomFrequency[entry.symptomName] ?? 0) + 1;
+        // Contar frecuencia de síntomas (usar el primer síntoma para estadísticas)
+        final symptomKey = entry.symptomNames.isNotEmpty
+            ? entry.symptomNames.first
+            : 'Sin síntomas';
+        symptomFrequency[symptomKey] = (symptomFrequency[symptomKey] ?? 0) + 1;
 
         // Distribución de severidad por síntoma
-        if (!severityDistribution.containsKey(entry.symptomName)) {
-          severityDistribution[entry.symptomName] = {};
+        if (!severityDistribution.containsKey(symptomKey)) {
+          severityDistribution[symptomKey] = {};
         }
-        severityDistribution[entry.symptomName]![entry.severity] =
-            (severityDistribution[entry.symptomName]![entry.severity] ?? 0) + 1;
+        severityDistribution[symptomKey]![entry.severity] =
+            (severityDistribution[symptomKey]![entry.severity] ?? 0) + 1;
       }
 
       return {
@@ -581,7 +583,7 @@ class SymptomService {
           final dayEntries = entriesByDate[date]!;
           for (final entry in dayEntries) {
             report +=
-                '  • ${entry.symptomName} - Severidad: ${entry.severity} - Hora: ${entry.time}\n';
+                '  • ${entry.symptomNames.isNotEmpty ? entry.symptomNames.first : 'Sin síntomas'} - Severidad: ${entry.severity} - Hora: ${entry.time}\n';
             if (entry.notes != null && entry.notes!.isNotEmpty) {
               report += '    Notas: ${entry.notes}\n';
             }

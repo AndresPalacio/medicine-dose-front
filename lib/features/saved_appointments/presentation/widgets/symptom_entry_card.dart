@@ -42,7 +42,9 @@ class SymptomEntryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ContraText(
-                      text: entry.symptomName,
+                      text: entry.symptomNames.isNotEmpty
+                          ? entry.symptomNames.first
+                          : 'Sin síntomas',
                       size: 18,
                       weight: FontWeight.bold,
                       color: wood_smoke,
@@ -105,8 +107,7 @@ class SymptomEntryCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: ContraText(
-                      text:
-                          'Medicamentos: ${entry.relatedMedications!.join(', ')}',
+                      text: 'Medicamentos: ${entry.relatedMedications!}',
                       size: 14,
                       color: wood_smoke,
                       alignment: Alignment.centerLeft,

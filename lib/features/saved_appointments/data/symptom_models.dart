@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class Symptom {
-  final String id;
+  final int id;
   final String name;
   final String description;
   final String category;
@@ -20,19 +20,20 @@ class Symptom {
 
 class SymptomEntry {
   final String id;
-  final String symptomId;
-  final String symptomName;
+  final List<Map<String, dynamic>>
+      symptoms; // Cambiado de symptomIds a symptoms
+  final List<String> symptomNames;
   final String severity;
   final String? notes;
   final DateTime date;
   final String time;
-  final List<String>? relatedMedications;
+  final String? relatedMedications;
   final Map<String, dynamic>? additionalData;
 
   SymptomEntry({
     required this.id,
-    required this.symptomId,
-    required this.symptomName,
+    required this.symptoms, // Cambiado de symptomIds a symptoms
+    required this.symptomNames,
     required this.severity,
     this.notes,
     required this.date,
@@ -42,23 +43,46 @@ class SymptomEntry {
   });
 
   factory SymptomEntry.fromJson(Map<String, dynamic> json) {
-    final symptomName =
-        json['symptomName'] ?? json['name'] ?? 'Síntoma desconocido';
+    final symptomNames = json['symptomNames'];
+    final symptoms = json['symptoms'];
     final severity = json['severity'] ?? 'LEVE';
     final notes = json['notes'];
     final date = json['date'];
     final time = json['time'] ?? '';
 
+    // Manejar tanto arrays como strings para compatibilidad
+    List<String> names = [];
+    List<Map<String, dynamic>> symptomsList = [];
+
+    if (symptomNames is List) {
+      names = symptomNames.cast<String>();
+    } else if (symptomNames is String) {
+      // Fallback: convertir string separado por comas a array
+      names = symptomNames.split(', ').map((s) => s.trim()).toList();
+    }
+
+    if (symptoms is List) {
+      symptomsList = symptoms.cast<Map<String, dynamic>>();
+    } else if (symptoms is String) {
+      // Fallback: convertir string separado por comas a array de síntomas
+      symptomsList = symptoms
+          .split(', ')
+          .map(
+              (s) => {'id': int.tryParse(s.trim()) ?? 0, 'category': 'general'})
+          .where((symptom) => (symptom['id'] as int) > 0)
+          .toList();
+    }
+
     return SymptomEntry(
       id: json['id'] ?? '',
-      symptomId: json['symptomId'] ?? json['id'] ?? '',
-      symptomName: symptomName,
+      symptoms: symptomsList,
+      symptomNames: names,
       severity: severity,
       notes: notes,
       date: DateTime.parse(date),
       time: time,
       relatedMedications: json['relatedMedications'] != null
-          ? List<String>.from(json['relatedMedications'])
+          ? json['relatedMedications'].toString()
           : null,
       additionalData: json['additionalData'],
     );
@@ -67,8 +91,8 @@ class SymptomEntry {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'symptomId': symptomId,
-      'symptomName': symptomName,
+      'symptoms': symptoms,
+      'symptomNames': symptomNames,
       'severity': severity,
       'notes': notes,
       'date': date.toIso8601String(),
@@ -76,6 +100,17 @@ class SymptomEntry {
       'relatedMedications': relatedMedications,
       'additionalData': additionalData,
     };
+  }
+
+  // Getter para compatibilidad con código existente
+  String get symptomName {
+    if (symptomNames.isEmpty) return '';
+    return symptomNames.first;
+  }
+
+  // Getter para obtener solo los IDs de síntomas (para compatibilidad)
+  List<int> get symptomIds {
+    return symptoms.map((s) => s['id'] as int).toList();
   }
 }
 
@@ -279,7 +314,7 @@ class SymptomData {
   static final List<Symptom> symptoms = [
     // Síntomas generales
     Symptom(
-      id: 'fatigue',
+      id: 1,
       name: 'Fatiga',
       description: 'Cansancio extremo o falta de energía',
       category: 'general',
@@ -287,7 +322,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderada', 'Severa', 'Extrema'],
     ),
     Symptom(
-      id: 'fever',
+      id: 2,
       name: 'Fiebre',
       description: 'Temperatura corporal elevada',
       category: 'general',
@@ -300,7 +335,7 @@ class SymptomData {
       ],
     ),
     Symptom(
-      id: 'headache',
+      id: 3,
       name: 'Dolor de cabeza',
       description: 'Dolor en la cabeza o cuello',
       category: 'pain',
@@ -308,7 +343,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderado', 'Intenso', 'Insoportable'],
     ),
     Symptom(
-      id: 'nausea',
+      id: 4,
       name: 'Náuseas',
       description: 'Sensación de malestar estomacal',
       category: 'digestive',
@@ -316,7 +351,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderada', 'Intensa', 'Vómitos'],
     ),
     Symptom(
-      id: 'cough',
+      id: 5,
       name: 'Tos',
       description: 'Tos seca o con flemas',
       category: 'respiratory',
@@ -324,7 +359,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderada', 'Frecuente', 'Constante'],
     ),
     Symptom(
-      id: 'dizziness',
+      id: 6,
       name: 'Mareos',
       description: 'Sensación de vértigo o desequilibrio',
       category: 'neurological',
@@ -332,7 +367,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderado', 'Intenso', 'Desmayo'],
     ),
     Symptom(
-      id: 'insomnia',
+      id: 7,
       name: 'Insomnio',
       description: 'Dificultad para dormir',
       category: 'general',
@@ -340,7 +375,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderada', 'Severa', 'Total'],
     ),
     Symptom(
-      id: 'appetite_loss',
+      id: 8,
       name: 'Pérdida de apetito',
       description: 'Falta de deseo de comer',
       category: 'digestive',
@@ -348,7 +383,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderada', 'Significativa', 'Total'],
     ),
     Symptom(
-      id: 'shortness_breath',
+      id: 9,
       name: 'Falta de aire',
       description: 'Dificultad para respirar',
       category: 'respiratory',
@@ -356,7 +391,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderada', 'Intensa', 'Asfixia'],
     ),
     Symptom(
-      id: 'muscle_pain',
+      id: 10,
       name: 'Dolor muscular',
       description: 'Dolor en los músculos',
       category: 'pain',
@@ -365,7 +400,7 @@ class SymptomData {
     ),
     // Síntomas específicos de SIBO
     Symptom(
-      id: 'bloating',
+      id: 11,
       name: 'Hinchazón abdominal',
       description: 'Distensión del abdomen después de comer',
       category: 'sibo_specific',
@@ -373,7 +408,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderada', 'Intensa', 'Extrema'],
     ),
     Symptom(
-      id: 'gas',
+      id: 12,
       name: 'Gases excesivos',
       description: 'Flatulencia y eructos frecuentes',
       category: 'sibo_specific',
@@ -381,7 +416,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderada', 'Intensa', 'Constante'],
     ),
     Symptom(
-      id: 'abdominal_pain',
+      id: 13,
       name: 'Dolor abdominal',
       description: 'Dolor en el área del estómago e intestinos',
       category: 'sibo_specific',
@@ -389,7 +424,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderado', 'Intenso', 'Debilitante'],
     ),
     Symptom(
-      id: 'diarrhea',
+      id: 14,
       name: 'Diarrea',
       description: 'Deposiciones líquidas frecuentes',
       category: 'sibo_specific',
@@ -402,7 +437,7 @@ class SymptomData {
       ],
     ),
     Symptom(
-      id: 'constipation',
+      id: 15,
       name: 'Estreñimiento',
       description: 'Dificultad para evacuar',
       category: 'sibo_specific',
@@ -416,7 +451,7 @@ class SymptomData {
     ),
     // Síntomas específicos de Helicobacter
     Symptom(
-      id: 'stomach_burning',
+      id: 16,
       name: 'Ardor estomacal',
       description: 'Sensación de quemazón en el estómago',
       category: 'helicobacter',
@@ -424,7 +459,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderado', 'Intenso', 'Insoportable'],
     ),
     Symptom(
-      id: 'acid_reflux',
+      id: 17,
       name: 'Reflujo ácido',
       description: 'Regreso del contenido estomacal al esófago',
       category: 'helicobacter',
@@ -432,7 +467,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderado', 'Intenso', 'Constante'],
     ),
     Symptom(
-      id: 'early_satiety',
+      id: 18,
       name: 'Saciedad temprana',
       description: 'Sentirse lleno rápidamente al comer',
       category: 'helicobacter',
@@ -440,7 +475,7 @@ class SymptomData {
       severityLevels: ['Leve', 'Moderada', 'Intensa', 'Total'],
     ),
     Symptom(
-      id: 'black_stools',
+      id: 19,
       name: 'Heces negras',
       description: 'Deposiciones de color negro o alquitranadas',
       category: 'helicobacter',
@@ -620,7 +655,7 @@ class SymptomData {
     return symptoms.where((symptom) => symptom.category == categoryId).toList();
   }
 
-  static Symptom? getSymptomById(String id) {
+  static Symptom? getSymptomById(int id) {
     try {
       return symptoms.firstWhere((symptom) => symptom.id == id);
     } catch (e) {

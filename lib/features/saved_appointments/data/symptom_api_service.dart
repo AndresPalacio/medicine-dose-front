@@ -4,23 +4,41 @@ import 'package:intl/intl.dart';
 import 'symptom_models.dart';
 
 class SymptomApiService {
-  String _baseUrl = 'https://3lp396k7td.execute-api.us-east-1.amazonaws.com/prod/api';
+  String _baseUrl = 'http://localhost:8080/api';
 
   // ===== MÉTODOS PARA SÍNTOMAS =====
 
-  // Obtener todas las entradas de síntomas
+  // Obtener todas las entradas de síntomas (usando endpoint por mes - más rápido)
   Future<List<SymptomEntry>> getAllSymptomEntries() async {
     try {
+      // Usar endpoint por mes para obtener todos los síntomas del mes actual
+      final currentDate = DateTime.now();
+      final monthKey =
+          '${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}';
+
+      print(
+          'DEBUG getAllSymptomEntries → Usando endpoint por mes: month=$monthKey');
+
       final response = await http.get(
-        Uri.parse('$_baseUrl/symptoms?userId=main'),
+        Uri.parse('$_baseUrl/symptoms?userId=main&month=$monthKey'),
         headers: {'Content-Type': 'application/json'},
       );
 
+      print('DEBUG getAllSymptomEntries → Status: ${response.statusCode}');
+      print('DEBUG getAllSymptomEntries → Response: ${response.body}');
+
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
-        return body.map((dynamic item) => SymptomEntry.fromJson(item)).toList();
+        final symptoms =
+            body.map((dynamic item) => SymptomEntry.fromJson(item)).toList();
+        print(
+            'DEBUG getAllSymptomEntries → Síntomas obtenidos: ${symptoms.length}');
+        return symptoms;
       } else {
-        throw Exception('Failed to load symptoms: ${response.statusCode}');
+        print(
+            'DEBUG getAllSymptomEntries → Error: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to load symptoms: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error al obtener síntomas: $e');
@@ -50,12 +68,15 @@ class SymptomApiService {
     }
   }
 
-  // Obtener entradas de síntomas por rango de fechas
+  // Obtener entradas de síntomas por rango de fechas (usando endpoint inteligente)
   Future<List<SymptomEntry>> getSymptomEntriesByDateRange(
       DateTime startDate, DateTime endDate) async {
     try {
       final startFormatted = DateFormat('yyyy-MM-dd').format(startDate);
       final endFormatted = DateFormat('yyyy-MM-dd').format(endDate);
+
+      print(
+          'DEBUG getSymptomEntriesByDateRange → Usando endpoint por rango: startDate=$startFormatted, endDate=$endFormatted');
 
       final response = await http.get(
         Uri.parse(
@@ -63,12 +84,22 @@ class SymptomApiService {
         headers: {'Content-Type': 'application/json'},
       );
 
+      print(
+          'DEBUG getSymptomEntriesByDateRange → Status: ${response.statusCode}');
+      print('DEBUG getSymptomEntriesByDateRange → Response: ${response.body}');
+
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
-        return body.map((dynamic item) => SymptomEntry.fromJson(item)).toList();
+        final symptoms =
+            body.map((dynamic item) => SymptomEntry.fromJson(item)).toList();
+        print(
+            'DEBUG getSymptomEntriesByDateRange → Síntomas obtenidos: ${symptoms.length}');
+        return symptoms;
       } else {
+        print(
+            'DEBUG getSymptomEntriesByDateRange → Error: ${response.statusCode} - ${response.body}');
         throw Exception(
-            'Failed to load symptoms by date range: ${response.statusCode}');
+            'Failed to load symptoms by date range: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error al obtener síntomas por rango de fechas: $e');
@@ -79,16 +110,20 @@ class SymptomApiService {
   // Agregar una nueva entrada de síntoma
   Future<bool> addSymptomEntry(SymptomEntry entry) async {
     try {
+      // El backend espera solo el nombre del síntoma, no el ID
+      // El backend generará automáticamente el symptomId
       final body = {
-        'symptomId': entry.symptomId,
         'symptomName': entry.symptomName,
         'severity': entry.severity,
         'notes': entry.notes,
         'date': DateFormat('yyyy-MM-dd').format(entry.date),
         'time': entry.time,
-        'relatedMedications': entry.relatedMedications,
+        'relatedMedications': entry.relatedMedications ?? [],
         'userId': 'main',
       };
+
+      print(
+          'DEBUG addSymptomEntry → Enviando solo symptomName (sin symptomId): $body');
 
       final response = await http.post(
         Uri.parse('$_baseUrl/symptoms'),
@@ -96,11 +131,17 @@ class SymptomApiService {
         body: jsonEncode(body),
       );
 
+      print('DEBUG addSymptomEntry → Status: ${response.statusCode}');
+      print('DEBUG addSymptomEntry → Response: ${response.body}');
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         print('DEBUG addSymptomEntry → Síntoma creado exitosamente');
         return true;
       } else {
-        throw Exception('Failed to create symptom: ${response.statusCode}');
+        print(
+            'DEBUG addSymptomEntry → Error del backend: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to create symptom: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error al agregar síntoma: $e');
@@ -111,16 +152,20 @@ class SymptomApiService {
   // Actualizar una entrada de síntoma existente
   Future<bool> updateSymptomEntry(SymptomEntry updatedEntry) async {
     try {
+      // El backend espera solo el nombre del síntoma, no el ID
+      // El backend ya tiene el symptomId almacenado
       final body = {
-        'symptomId': updatedEntry.symptomId,
         'symptomName': updatedEntry.symptomName,
         'severity': updatedEntry.severity,
         'notes': updatedEntry.notes,
         'date': DateFormat('yyyy-MM-dd').format(updatedEntry.date),
         'time': updatedEntry.time,
-        'relatedMedications': updatedEntry.relatedMedications,
+        'relatedMedications': updatedEntry.relatedMedications ?? [],
         'userId': 'main',
       };
+
+      print(
+          'DEBUG updateSymptomEntry → Enviando solo symptomName (sin symptomId): $body');
 
       final response = await http.put(
         Uri.parse('$_baseUrl/symptoms/${updatedEntry.id}'),
@@ -128,11 +173,17 @@ class SymptomApiService {
         body: jsonEncode(body),
       );
 
+      print('DEBUG updateSymptomEntry → Status: ${response.statusCode}');
+      print('DEBUG updateSymptomEntry → Response: ${response.body}');
+
       if (response.statusCode == 200) {
         print('DEBUG updateSymptomEntry → Síntoma actualizado exitosamente');
         return true;
       } else {
-        throw Exception('Failed to update symptom: ${response.statusCode}');
+        print(
+            'DEBUG updateSymptomEntry → Error del backend: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to update symptom: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error al actualizar síntoma: $e');
@@ -187,19 +238,36 @@ class SymptomApiService {
 
   // ===== MÉTODOS PARA ALIMENTACIÓN =====
 
-  // Obtener todas las entradas de alimentación
+  // Obtener todas las entradas de alimentación (usando endpoint por mes - más rápido)
   Future<List<FoodEntry>> getAllFoodEntries() async {
     try {
+      // Usar endpoint por mes para obtener todos los alimentos del mes actual
+      final currentDate = DateTime.now();
+      final monthKey =
+          '${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}';
+
+      print(
+          'DEBUG getAllFoodEntries → Usando endpoint por mes: month=$monthKey');
+
       final response = await http.get(
-        Uri.parse('$_baseUrl/foods?userId=main'),
+        Uri.parse('$_baseUrl/foods?userId=main&month=$monthKey'),
         headers: {'Content-Type': 'application/json'},
       );
 
+      print('DEBUG getAllFoodEntries → Status: ${response.statusCode}');
+      print('DEBUG getAllFoodEntries → Response: ${response.body}');
+
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
-        return body.map((dynamic item) => FoodEntry.fromJson(item)).toList();
+        final foods =
+            body.map((dynamic item) => FoodEntry.fromJson(item)).toList();
+        print('DEBUG getAllFoodEntries → Alimentos obtenidos: ${foods.length}');
+        return foods;
       } else {
-        throw Exception('Failed to load foods: ${response.statusCode}');
+        print(
+            'DEBUG getAllFoodEntries → Error: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to load foods: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error al obtener alimentos: $e');
@@ -207,23 +275,111 @@ class SymptomApiService {
     }
   }
 
-  // Obtener entradas de alimentación por fecha
+  // Obtener entradas de alimentación por fecha (usando endpoint optimizado)
   Future<List<FoodEntry>> getFoodEntriesByDate(DateTime date) async {
     try {
       final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+      print(
+          'DEBUG getFoodEntriesByDate → Usando endpoint por fecha: date=$formattedDate');
+
       final response = await http.get(
         Uri.parse('$_baseUrl/foods?userId=main&date=$formattedDate'),
         headers: {'Content-Type': 'application/json'},
       );
 
+      print('DEBUG getFoodEntriesByDate → Status: ${response.statusCode}');
+      print('DEBUG getFoodEntriesByDate → Response: ${response.body}');
+
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
-        return body.map((dynamic item) => FoodEntry.fromJson(item)).toList();
+        final foods =
+            body.map((dynamic item) => FoodEntry.fromJson(item)).toList();
+        print(
+            'DEBUG getFoodEntriesByDate → Alimentos obtenidos: ${foods.length}');
+        return foods;
       } else {
-        throw Exception('Failed to load foods by date: ${response.statusCode}');
+        print(
+            'DEBUG getFoodEntriesByDate → Error: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to load foods by date: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error al obtener alimentos por fecha: $e');
+      return [];
+    }
+  }
+
+  // Obtener entradas de alimentación por mes (usando endpoint más rápido)
+  Future<List<FoodEntry>> getFoodEntriesByMonth(DateTime month) async {
+    try {
+      final monthKey =
+          '${month.year}-${month.month.toString().padLeft(2, '0')}';
+
+      print(
+          'DEBUG getFoodEntriesByMonth → Usando endpoint por mes: month=$monthKey');
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/foods?userId=main&month=$monthKey'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('DEBUG getFoodEntriesByMonth → Status: ${response.statusCode}');
+      print('DEBUG getFoodEntriesByMonth → Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
+        final foods =
+            body.map((dynamic item) => FoodEntry.fromJson(item)).toList();
+        print(
+            'DEBUG getFoodEntriesByMonth → Alimentos obtenidos: ${foods.length}');
+        return foods;
+      } else {
+        print(
+            'DEBUG getFoodEntriesByMonth → Error: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to load foods by month: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Error al obtener alimentos por mes: $e');
+      return [];
+    }
+  }
+
+  // Obtener entradas de alimentación por rango de fechas (usando endpoint inteligente)
+  Future<List<FoodEntry>> getFoodEntriesByDateRange(
+      DateTime startDate, DateTime endDate) async {
+    try {
+      final startFormatted = DateFormat('yyyy-MM-dd').format(startDate);
+      final endFormatted = DateFormat('yyyy-MM-dd').format(endDate);
+
+      print(
+          'DEBUG getFoodEntriesByDateRange → Usando endpoint por rango: startDate=$startFormatted, endDate=$endFormatted');
+
+      final response = await http.get(
+        Uri.parse(
+            '$_baseUrl/foods?userId=main&startDate=$startFormatted&endDate=$endFormatted'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('DEBUG getFoodEntriesByDateRange → Status: ${response.statusCode}');
+      print('DEBUG getFoodEntriesByDateRange → Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
+        final foods =
+            body.map((dynamic item) => FoodEntry.fromJson(item)).toList();
+        print(
+            'DEBUG getFoodEntriesByDateRange → Alimentos obtenidos: ${foods.length}');
+        return foods;
+      } else {
+        print(
+            'DEBUG getFoodEntriesByDateRange → Error: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to load foods by date range: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Error al obtener alimentos por rango de fechas: $e');
       return [];
     }
   }
@@ -353,22 +509,39 @@ class SymptomApiService {
 
   // ===== MÉTODOS PARA DEPOSICIONES =====
 
-  // Obtener todas las entradas de deposiciones
+  // Obtener todas las entradas de deposiciones (usando endpoint por mes - más rápido)
   Future<List<BowelMovementEntry>> getAllBowelMovementEntries() async {
     try {
+      // Usar endpoint por mes para obtener todas las deposiciones del mes actual
+      final currentDate = DateTime.now();
+      final monthKey =
+          '${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}';
+
+      print(
+          'DEBUG getAllBowelMovementEntries → Usando endpoint por mes: month=$monthKey');
+
       final response = await http.get(
-        Uri.parse('$_baseUrl/bowel-movements?userId=main'),
+        Uri.parse('$_baseUrl/bowel-movements?userId=main&month=$monthKey'),
         headers: {'Content-Type': 'application/json'},
       );
 
+      print(
+          'DEBUG getAllBowelMovementEntries → Status: ${response.statusCode}');
+      print('DEBUG getAllBowelMovementEntries → Response: ${response.body}');
+
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
-        return body
+        final bowelMovements = body
             .map((dynamic item) => BowelMovementEntry.fromJson(item))
             .toList();
+        print(
+            'DEBUG getAllBowelMovementEntries → Deposiciones obtenidas: ${bowelMovements.length}');
+        return bowelMovements;
       } else {
+        print(
+            'DEBUG getAllBowelMovementEntries → Error: ${response.statusCode} - ${response.body}');
         throw Exception(
-            'Failed to load bowel movements: ${response.statusCode}');
+            'Failed to load bowel movements: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error al obtener deposiciones: $e');
@@ -376,27 +549,121 @@ class SymptomApiService {
     }
   }
 
-  // Obtener entradas de deposiciones por fecha
+  // Obtener entradas de deposiciones por fecha (usando endpoint optimizado)
   Future<List<BowelMovementEntry>> getBowelMovementEntriesByDate(
       DateTime date) async {
     try {
       final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+      print(
+          'DEBUG getBowelMovementEntriesByDate → Usando endpoint por fecha: date=$formattedDate');
+
       final response = await http.get(
         Uri.parse('$_baseUrl/bowel-movements?userId=main&date=$formattedDate'),
         headers: {'Content-Type': 'application/json'},
       );
 
+      print(
+          'DEBUG getBowelMovementEntriesByDate → Status: ${response.statusCode}');
+      print('DEBUG getBowelMovementEntriesByDate → Response: ${response.body}');
+
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
-        return body
+        final bowelMovements = body
             .map((dynamic item) => BowelMovementEntry.fromJson(item))
             .toList();
+        print(
+            'DEBUG getBowelMovementEntriesByDate → Deposiciones obtenidas: ${bowelMovements.length}');
+        return bowelMovements;
       } else {
+        print(
+            'DEBUG getBowelMovementEntriesByDate → Error: ${response.statusCode} - ${response.body}');
         throw Exception(
-            'Failed to load bowel movements by date: ${response.statusCode}');
+            'Failed to load bowel movements by date: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error al obtener deposiciones por fecha: $e');
+      return [];
+    }
+  }
+
+  // Obtener entradas de deposiciones por mes (usando endpoint más rápido)
+  Future<List<BowelMovementEntry>> getBowelMovementEntriesByMonth(
+      DateTime month) async {
+    try {
+      final monthKey =
+          '${month.year}-${month.month.toString().padLeft(2, '0')}';
+
+      print(
+          'DEBUG getBowelMovementEntriesByMonth → Usando endpoint por mes: month=$monthKey');
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/bowel-movements?userId=main&month=$monthKey'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print(
+          'DEBUG getBowelMovementEntriesByMonth → Status: ${response.statusCode}');
+      print(
+          'DEBUG getBowelMovementEntriesByMonth → Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
+        final bowelMovements = body
+            .map((dynamic item) => BowelMovementEntry.fromJson(item))
+            .toList();
+        print(
+            'DEBUG getBowelMovementEntriesByMonth → Deposiciones obtenidas: ${bowelMovements.length}');
+        return bowelMovements;
+      } else {
+        print(
+            'DEBUG getBowelMovementEntriesByMonth → Error: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to load bowel movements by month: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Error al obtener deposiciones por mes: $e');
+      return [];
+    }
+  }
+
+  // Obtener entradas de deposiciones por rango de fechas (usando endpoint inteligente)
+  Future<List<BowelMovementEntry>> getBowelMovementEntriesByDateRange(
+      DateTime startDate, DateTime endDate) async {
+    try {
+      final startFormatted = DateFormat('yyyy-MM-dd').format(startDate);
+      final endFormatted = DateFormat('yyyy-MM-dd').format(endDate);
+
+      print(
+          'DEBUG getBowelMovementEntriesByDateRange → Usando endpoint por rango: startDate=$startFormatted, endDate=$endFormatted');
+
+      final response = await http.get(
+        Uri.parse(
+            '$_baseUrl/bowel-movements?userId=main&startDate=$startFormatted&endDate=$endFormatted'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print(
+          'DEBUG getBowelMovementEntriesByDateRange → Status: ${response.statusCode}');
+      print(
+          'DEBUG getBowelMovementEntriesByDateRange → Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
+        final bowelMovements = body
+            .map((dynamic item) => BowelMovementEntry.fromJson(item))
+            .toList();
+        print(
+            'DEBUG getBowelMovementEntriesByDateRange → Deposiciones obtenidas: ${bowelMovements.length}');
+        return bowelMovements;
+      } else {
+        print(
+            'DEBUG getBowelMovementEntriesByDateRange → Error: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to load bowel movements by date range: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Error al obtener deposiciones por rango de fechas: $e');
       return [];
     }
   }
@@ -572,31 +839,31 @@ class SymptomApiService {
       print(
           'DEBUG generateMedicalReport → Generando reporte para período: $startDate - $endDate');
 
-      // Obtener datos del backend usando los endpoints HTTP
+      // Obtener datos del backend usando los endpoints HTTP optimizados
+      print(
+          'DEBUG generateMedicalReport → Obteniendo síntomas por rango de fechas...');
       final symptomEntries =
           await getSymptomEntriesByDateRange(startDate, endDate);
-      final foodEntries = await getAllFoodEntries();
-      final bowelEntries = await getAllBowelMovementEntries();
+
+      print(
+          'DEBUG generateMedicalReport → Obteniendo alimentos por rango de fechas...');
+      final foodEntries = await getFoodEntriesByDateRange(startDate, endDate);
+
+      print(
+          'DEBUG generateMedicalReport → Obteniendo deposiciones por rango de fechas...');
+      final bowelEntries =
+          await getBowelMovementEntriesByDateRange(startDate, endDate);
 
       print('DEBUG generateMedicalReport → Datos obtenidos del backend:');
       print('  - Síntomas: ${symptomEntries.length}');
       print('  - Alimentos: ${foodEntries.length}');
       print('  - Deposiciones: ${bowelEntries.length}');
 
-      // Filtrar alimentos y deposiciones por el rango de fechas
-      final foodEntriesInRange = foodEntries.where((entry) {
-        return entry.date
-                .isAfter(startDate.subtract(const Duration(days: 1))) &&
-            entry.date.isBefore(endDate.add(const Duration(days: 1)));
-      }).toList();
+      // Ya no necesitamos filtrar localmente porque usamos endpoints por rango
+      final foodEntriesInRange = foodEntries;
+      final bowelEntriesInRange = bowelEntries;
 
-      final bowelEntriesInRange = bowelEntries.where((entry) {
-        return entry.date
-                .isAfter(startDate.subtract(const Duration(days: 1))) &&
-            entry.date.isBefore(endDate.add(const Duration(days: 1)));
-      }).toList();
-
-      print('DEBUG generateMedicalReport → Datos filtrados por fecha:');
+      print('DEBUG generateMedicalReport → Datos ya filtrados por el backend:');
       print('  - Alimentos en rango: ${foodEntriesInRange.length}');
       print('  - Deposiciones en rango: ${bowelEntriesInRange.length}');
 
@@ -724,8 +991,15 @@ class SymptomApiService {
     try {
       print('DEBUG exportDataAsJson → Exportando datos del backend...');
 
+      // Usar endpoints optimizados por mes para obtener todos los datos
+      print('DEBUG exportDataAsJson → Obteniendo síntomas del mes actual...');
       final symptomEntries = await getAllSymptomEntries();
+
+      print('DEBUG exportDataAsJson → Obteniendo alimentos del mes actual...');
       final foodEntries = await getAllFoodEntries();
+
+      print(
+          'DEBUG exportDataAsJson → Obteniendo deposiciones del mes actual...');
       final bowelEntries = await getAllBowelMovementEntries();
 
       final data = {

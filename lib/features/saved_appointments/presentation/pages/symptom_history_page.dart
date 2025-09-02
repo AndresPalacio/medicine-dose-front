@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:vibe_coding_tutorial_weather_app/custom_widgets/contra_text.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_models.dart';
-import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_service.dart';
+import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/data/symptom_api_service.dart';
 import 'package:vibe_coding_tutorial_weather_app/features/saved_appointments/presentation/widgets/symptom_entry_card.dart';
 import 'package:vibe_coding_tutorial_weather_app/utils/colors.dart';
 
@@ -14,7 +14,7 @@ class SymptomHistoryPage extends StatefulWidget {
 }
 
 class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
-  final SymptomService _symptomService = SymptomService();
+  final SymptomApiService _symptomService = SymptomApiService();
   List<SymptomEntry> _allEntries = [];
   List<SymptomEntry> _filteredEntries = [];
   bool _isLoading = true;
@@ -38,6 +38,7 @@ class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
     });
 
     try {
+      // Usar endpoint por mes para obtener síntomas del mes actual (más rápido)
       final entries = await _symptomService.getAllSymptomEntries();
       setState(() {
         _allEntries = entries;
@@ -48,6 +49,31 @@ class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
     } catch (e) {
       setState(() {
         _error = 'Error al cargar el historial: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Cargar entradas por rango de fechas usando endpoint inteligente
+  Future<void> _loadEntriesByDateRange(
+      DateTime startDate, DateTime endDate) async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // Usar endpoint por rango de fechas (inteligente)
+      final entries = await _symptomService.getSymptomEntriesByDateRange(
+          startDate, endDate);
+      setState(() {
+        _allEntries = entries;
+        _filteredEntries = entries;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error al cargar el historial por rango de fechas: $e';
         _isLoading = false;
       });
     }
@@ -68,12 +94,9 @@ class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
     } else if (_selectedFilter == 'custom' &&
         _startDate != null &&
         _endDate != null) {
-      filtered = filtered
-          .where((entry) =>
-              entry.date
-                  .isAfter(_startDate!.subtract(const Duration(days: 1))) &&
-              entry.date.isBefore(_endDate!.add(const Duration(days: 1))))
-          .toList();
+      // Para filtros personalizados, usar endpoint por rango de fechas (inteligente)
+      _loadEntriesByDateRange(_startDate!, _endDate!);
+      return; // Salir temprano ya que se cargarán nuevos datos
     }
 
     // Aplicar filtro de búsqueda
@@ -340,12 +363,14 @@ class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: white,
-        title: const Text('Filtrar Historial', style: TextStyle(color: wood_smoke)),
+        title: const Text('Filtrar Historial',
+            style: TextStyle(color: wood_smoke)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             RadioListTile<String>(
-              title: const Text('Todos los registros', style: TextStyle(color: wood_smoke)),
+              title: const Text('Todos los registros',
+                  style: TextStyle(color: wood_smoke)),
               value: 'all',
               groupValue: _selectedFilter,
               onChanged: (value) {
@@ -359,7 +384,8 @@ class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
               },
             ),
             RadioListTile<String>(
-              title: const Text('Última semana', style: TextStyle(color: wood_smoke)),
+              title: const Text('Última semana',
+                  style: TextStyle(color: wood_smoke)),
               value: 'week',
               groupValue: _selectedFilter,
               onChanged: (value) {
@@ -373,7 +399,8 @@ class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
               },
             ),
             RadioListTile<String>(
-              title: const Text('Último mes', style: TextStyle(color: wood_smoke)),
+              title:
+                  const Text('Último mes', style: TextStyle(color: wood_smoke)),
               value: 'month',
               groupValue: _selectedFilter,
               onChanged: (value) {
@@ -436,12 +463,24 @@ class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
     );
   }
 
+  // Recargar datos manteniendo el filtro activo
+  Future<void> _reloadDataWithCurrentFilter() async {
+    if (_selectedFilter == 'custom' && _startDate != null && _endDate != null) {
+      // Si hay un filtro personalizado activo, usar endpoint por rango
+      await _loadEntriesByDateRange(_startDate!, _endDate!);
+    } else {
+      // Si no hay filtro personalizado, usar endpoint por mes (más rápido)
+      await _loadEntries();
+    }
+  }
+
   Future<void> _deleteSymptom(SymptomEntry entry) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: white,
-        title: const Text('Eliminar Síntoma', style: TextStyle(color: wood_smoke)),
+        title:
+            const Text('Eliminar Síntoma', style: TextStyle(color: wood_smoke)),
         content: Text(
             '¿Estás seguro de que quieres eliminar el registro de "${entry.symptomName}"?',
             style: const TextStyle(color: wood_smoke)),
@@ -452,7 +491,9 @@ class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Eliminar', style: TextStyle(color: carribean_green, fontWeight: FontWeight.bold)),
+            child: const Text('Eliminar',
+                style: TextStyle(
+                    color: carribean_green, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -461,7 +502,9 @@ class _SymptomHistoryPageState extends State<SymptomHistoryPage> {
     if (confirmed == true) {
       try {
         await _symptomService.deleteSymptomEntry(entry.id);
-        _loadEntries();
+
+        // Recargar datos manteniendo el filtro activo
+        _reloadDataWithCurrentFilter();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

@@ -56,7 +56,7 @@ class MedicalAppointment {
 }
 
 class AppointmentApiService {
-  String _baseUrl = 'https://3lp396k7td.execute-api.us-east-1.amazonaws.com/prod/api';
+  String _baseUrl = 'http://localhost:8080/api';
 
   // Obtener todas las citas médicas (usando fecha del mes actual como en daily)
   Future<List<MedicalAppointment>> getAllAppointments() async {
